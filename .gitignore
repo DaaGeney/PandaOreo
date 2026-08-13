@@ -23,3 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Config local (no subir)
+.mcp.json
+.agents/
+.claude/
