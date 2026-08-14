@@ -15,6 +15,8 @@ export default function NumberModal({ entry, onSave, onClose }: Props) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmStatus, setConfirmStatus] = useState<RaffleNumber['status'] | null>(null)
+  // Un número ya vendido se abre bloqueado: hay que tocar «Editar» para cambiarlo
+  const [editing, setEditing] = useState(entry.status === 'available')
 
   const save = async (status: RaffleNumber['status']) => {
     if (status !== 'available' && !name.trim()) {
@@ -60,6 +62,36 @@ export default function NumberModal({ entry, onSave, onClose }: Props) {
           <span className="text-sm text-plum-light font-semibold">{formatCOP(TICKET_PRICE)}</span>
         </div>
 
+        {!editing && (
+          <>
+            <div className="bg-white rounded-xl border border-plum/15 divide-y divide-plum/10 mb-4">
+              <Row label="Estado" value={<StatusBadge status={entry.status} />} />
+              <Row label="Nombre" value={entry.buyer_name ?? '—'} />
+              <Row label="Teléfono" value={entry.buyer_phone ?? '—'} />
+              <Row label="Vendido por" value={entry.sold_by ?? '—'} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="rounded-lg bg-plum text-cream font-bold py-2.5 hover:brightness-110"
+              >
+                ✏️ Editar
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-lg border border-plum/30 text-plum font-semibold py-2.5 hover:bg-white"
+              >
+                Cerrar
+              </button>
+            </div>
+          </>
+        )}
+
+        {editing && (
+          <>
         <label className="block mb-3">
           <span className="text-sm font-semibold text-plum">Nombre</span>
           <input
@@ -134,7 +166,31 @@ export default function NumberModal({ entry, onSave, onClose }: Props) {
             Cancelar
           </button>
         </div>
+          </>
+        )}
       </div>
     </div>
+  )
+}
+
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between px-3 py-2.5">
+      <span className="text-sm font-semibold text-plum-light">{label}</span>
+      <span className="font-bold text-ink text-right">{value}</span>
+    </div>
+  )
+}
+
+function StatusBadge({ status }: { status: RaffleNumber['status'] }) {
+  const paid = status === 'paid'
+  return (
+    <span
+      className={`rounded-lg px-2.5 py-1 text-sm font-bold ${
+        paid ? 'bg-plum text-cream' : 'bg-tangerine text-plum-dark'
+      }`}
+    >
+      {paid ? 'Pagado' : 'Apartado (debe)'}
+    </span>
   )
 }
