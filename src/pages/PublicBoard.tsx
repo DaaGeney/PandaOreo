@@ -71,7 +71,7 @@ export default function PublicBoard() {
         disabled={exporting || numbers.length === 0}
         className="block mx-auto mt-5 bg-plum text-cream font-bold rounded-xl px-6 py-3 hover:brightness-110 disabled:opacity-50"
       >
-        {exporting ? 'Generando…' : '📲 Compartir imagen de la rifa'}
+        {exporting ? 'Generando…' : '📲 Compartir números'}
       </button>
 
       <p className="text-center text-plum-dark font-bold mt-5">{DRAW_DATE}</p>

@@ -181,7 +181,7 @@ export default function AdminPage() {
           disabled={exporting}
           className="bg-plum text-cream font-bold rounded-xl py-3 hover:brightness-110 disabled:opacity-50"
         >
-          {exporting ? 'Generando…' : '📲 Compartir imagen'}
+          {exporting ? 'Generando…' : '📲 Compartir números'}
         </button>
         <button
           type="button"
