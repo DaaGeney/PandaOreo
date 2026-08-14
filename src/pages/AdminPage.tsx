@@ -12,13 +12,14 @@ import {
 } from '../lib/store'
 import { shareCardPng } from '../lib/exportImage'
 import type { RaffleNumber, NumberRequest } from '../lib/types'
-import { pad2 } from '../lib/types'
+import { normalize } from '../lib/types'
 import NumberGrid from '../components/NumberGrid'
 import NumberModal from '../components/NumberModal'
 import StatsBar from '../components/StatsBar'
 import ExportCard from '../components/ExportCard'
 import BuyersList from '../components/BuyersList'
 import PendingRequests from '../components/PendingRequests'
+import HistoryModal from '../components/HistoryModal'
 import PullToRefreshIndicator from '../components/PullToRefreshIndicator'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
 
@@ -35,6 +36,8 @@ export default function AdminPage() {
   const [copied, setCopied] = useState(false)
   const [history, setHistory] = useState<HistoryEntry[]>([])
   const [showHistory, setShowHistory] = useState(false)
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyError, setHistoryError] = useState(false)
   const [requests, setRequests] = useState<NumberRequest[]>([])
   const exportRef = useRef<HTMLDivElement>(null)
 
@@ -92,6 +95,42 @@ export default function AdminPage() {
     )
   }, [search, numbers])
 
+  // Sugerencias para el formulario de venta, derivadas del tablero ya cargado.
+  // Se ordenan por frecuencia: quien más números tiene aparece primero.
+  const buyerOptions = useMemo(() => {
+    const map = new Map<string, { value: string; hint?: string; count: number }>()
+    for (const n of numbers) {
+      const name = n.buyer_name?.trim()
+      if (!name) continue
+      const key = normalize(name)
+      const phone = n.buyer_phone?.trim() || undefined
+      const prev = map.get(key)
+      if (!prev) map.set(key, { value: name, hint: phone, count: 1 })
+      else {
+        prev.count++
+        if (!prev.hint) prev.hint = phone
+      }
+    }
+    return [...map.values()]
+      .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, 'es'))
+      .map(({ value, hint }) => ({ value, hint }))
+  }, [numbers])
+
+  const sellerOptions = useMemo(() => {
+    const map = new Map<string, { value: string; count: number }>()
+    for (const n of numbers) {
+      const seller = n.sold_by?.trim()
+      if (!seller) continue
+      const key = normalize(seller)
+      const prev = map.get(key)
+      if (!prev) map.set(key, { value: seller, count: 1 })
+      else prev.count++
+    }
+    return [...map.values()]
+      .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, 'es'))
+      .map(({ value }) => ({ value }))
+  }, [numbers])
+
   const save = async (updated: RaffleNumber) => {
     await updateNumber(updated)
     setNumbers((prev) => prev.map((n) => (n.number === updated.number ? updated : n)))
@@ -108,14 +147,21 @@ export default function AdminPage() {
     }
   }
 
-  const toggleHistory = async () => {
-    if (showHistory) {
-      setShowHistory(false)
-      return
-    }
-    setHistory(await fetchHistory().catch(() => []))
+  // Abre primero y carga después, para que el popup no se sienta trabado
+  const openHistory = async () => {
     setShowHistory(true)
+    setHistoryLoading(true)
+    setHistoryError(false)
+    try {
+      setHistory(await fetchHistory())
+    } catch {
+      setHistoryError(true)
+    } finally {
+      setHistoryLoading(false)
+    }
   }
+
+  const closeHistory = useCallback(() => setShowHistory(false), [])
 
   const copyPublicLink = async () => {
     const url = `${window.location.origin}/tablero`
@@ -246,38 +292,20 @@ export default function AdminPage() {
 
       <button
         type="button"
-        onClick={toggleHistory}
+        onClick={openHistory}
+        aria-haspopup="dialog"
         className="w-full border border-plum/25 text-plum font-semibold rounded-xl py-2.5 hover:bg-white"
       >
-        {showHistory ? 'Ocultar historial' : '🕘 Ver historial de cambios'}
+        🕘 Ver movimientos
       </button>
 
       {showHistory && (
-        <div className="mt-3 bg-white rounded-xl border border-plum/15 divide-y divide-plum/10">
-          {history.length === 0 && (
-            <p className="px-4 py-3 text-sm text-plum-light">Aún no hay cambios registrados.</p>
-          )}
-          {history.map((h) => (
-            <div key={h.id} className="px-4 py-2.5 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-plum">Nº {pad2(h.number)}</span>
-                <span className="text-xs text-plum-light">
-                  {new Date(h.changed_at).toLocaleString('es-CO', {
-                    day: '2-digit',
-                    month: 'short',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </span>
-              </div>
-              <div className="text-ink/80">
-                {statusLabel(h.old_status)}
-                {h.old_buyer ? ` (${h.old_buyer})` : ''} → {statusLabel(h.new_status)}
-                {h.new_buyer ? ` (${h.new_buyer})` : ''}
-              </div>
-            </div>
-          ))}
-        </div>
+        <HistoryModal
+          entries={history}
+          loading={historyLoading}
+          error={historyError}
+          onClose={closeHistory}
+        />
       )}
 
       {selectedEntry && (
@@ -285,6 +313,8 @@ export default function AdminPage() {
           entry={selectedEntry}
           onSave={save}
           onClose={() => setSelected(null)}
+          buyerOptions={buyerOptions}
+          sellerOptions={sellerOptions}
         />
       )}
 
@@ -352,10 +382,6 @@ function LoginScreen() {
       </form>
     </Centered>
   )
-}
-
-function statusLabel(s: string | null) {
-  return s === 'paid' ? 'Pagado' : s === 'reserved' ? 'Apartado' : 'Libre'
 }
 
 function Centered({ children }: { children: React.ReactNode }) {

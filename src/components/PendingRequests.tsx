@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { NumberRequest } from '../lib/types'
-import { pad2, whatsappLink, formatCOP, TICKET_PRICE } from '../lib/types'
+import { pad2, whatsappLink, formatCOP, TICKET_PRICE, formatDateTime } from '../lib/types'
 
 interface Props {
   requests: NumberRequest[]
@@ -64,12 +64,7 @@ export default function PendingRequests({ requests, onApprove, onReject }: Props
                   {g.name}
                 </span>
                 <span className="shrink-0 text-xs text-plum-light">
-                  {new Date(latest.created_at).toLocaleString('es-CO', {
-                    day: '2-digit',
-                    month: 'short',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+                  {formatDateTime(latest.created_at)}
                 </span>
               </div>
 

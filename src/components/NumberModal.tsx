@@ -1,14 +1,23 @@
 import { useState } from 'react'
 import type { RaffleNumber } from '../lib/types'
 import { pad2, formatCOP, TICKET_PRICE } from '../lib/types'
+import AutocompleteInput, { type Suggestion } from './AutocompleteInput'
 
 interface Props {
   entry: RaffleNumber
   onSave: (updated: RaffleNumber) => Promise<void>
   onClose: () => void
+  buyerOptions: Suggestion[]
+  sellerOptions: Suggestion[]
 }
 
-export default function NumberModal({ entry, onSave, onClose }: Props) {
+export default function NumberModal({
+  entry,
+  onSave,
+  onClose,
+  buyerOptions,
+  sellerOptions,
+}: Props) {
   const [name, setName] = useState(entry.buyer_name ?? '')
   const [phone, setPhone] = useState(entry.buyer_phone ?? '')
   const [soldBy, setSoldBy] = useState(entry.sold_by ?? '')
@@ -106,34 +115,38 @@ export default function NumberModal({ entry, onSave, onClose }: Props) {
 
         {editing && (
           <>
-        <label className="block mb-3">
-          <span className="text-sm font-semibold text-plum">Nombre</span>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="¿Quién toma este número?"
-            className="mt-1 w-full rounded-lg border border-plum/30 bg-white px-3 py-2 outline-none focus:border-plum"
-            autoFocus
-          />
-        </label>
+        <AutocompleteInput
+          label="Nombre"
+          value={name}
+          onChange={setName}
+          onPick={(s) => {
+            // Solo rellena el teléfono si la sugerencia trae uno:
+            // nunca borra lo que ya se escribió
+            if (s.hint) setPhone(s.hint)
+          }}
+          suggestions={buyerOptions}
+          placeholder="¿Quién toma este número?"
+          autoFocus
+        />
         <label className="block mb-3">
           <span className="text-sm font-semibold text-plum">Teléfono (opcional)</span>
           <input
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="300 123 4567"
+            inputMode="tel"
             className="mt-1 w-full rounded-lg border border-plum/30 bg-white px-3 py-2 outline-none focus:border-plum"
           />
         </label>
-        <label className="block mb-4">
-          <span className="text-sm font-semibold text-plum">Vendido por (opcional)</span>
-          <input
+        <div className="mb-1">
+          <AutocompleteInput
+            label="Vendido por (opcional)"
             value={soldBy}
-            onChange={(e) => setSoldBy(e.target.value)}
+            onChange={setSoldBy}
+            suggestions={sellerOptions}
             placeholder="¿Quién hizo esta venta?"
-            className="mt-1 w-full rounded-lg border border-plum/30 bg-white px-3 py-2 outline-none focus:border-plum"
           />
-        </label>
+        </div>
 
         {error && <p className="text-sm text-red-700 mb-3">{error}</p>}
 

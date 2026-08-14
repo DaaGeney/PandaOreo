@@ -53,3 +53,23 @@ export const formatCOP = (value: number) =>
   }).format(value)
 
 export const pad2 = (n: number) => n.toString().padStart(2, '0')
+
+/** Fecha corta para historial y solicitudes: "14 ago, 3:20 p. m." */
+export const formatDateTime = (iso: string) =>
+  new Date(iso)
+    .toLocaleString('es-CO', {
+      day: '2-digit',
+      month: 'short',
+      hour: 'numeric',
+      minute: '2-digit',
+    })
+    // es-CO intercala "de" ("14 de ago"), que solo ocupa espacio
+    .replace(' de ', ' ')
+
+/** Minúsculas sin tildes, para buscar y deduplicar: "Sofía" coincide con "sofia". */
+export const normalize = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim()

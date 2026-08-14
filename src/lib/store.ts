@@ -5,6 +5,12 @@ const DEMO_KEY = 'rifa-demo-numbers'
 const DEMO_HISTORY_KEY = 'rifa-demo-history'
 const DEMO_REQUESTS_KEY = 'rifa-demo-requests'
 
+// Date.now() se repite si ocurren varios registros en el mismo milisegundo,
+// y los ids duplicados rompen el renderizado de las listas. El sufijo los
+// hace únicos (en Supabase de esto se encarga la propia base de datos).
+let demoSeq = 0
+const demoId = () => Date.now() * 1000 + (demoSeq++ % 1000)
+
 export interface HistoryEntry {
   id: number
   number: number
@@ -109,7 +115,7 @@ function logDemoHistory(prev: RaffleNumber, next: RaffleNumber) {
     // historial corrupto: se reinicia
   }
   history.unshift({
-    id: Date.now(),
+    id: demoId(),
     number: next.number,
     old_status: prev.status,
     new_status: next.status,
@@ -117,7 +123,7 @@ function logDemoHistory(prev: RaffleNumber, next: RaffleNumber) {
     new_buyer: next.buyer_name,
     changed_at: new Date().toISOString(),
   })
-  localStorage.setItem(DEMO_HISTORY_KEY, JSON.stringify(history.slice(0, 100)))
+  localStorage.setItem(DEMO_HISTORY_KEY, JSON.stringify(history.slice(0, 300)))
 }
 
 /** Últimos cambios, del más reciente al más antiguo. */
@@ -133,7 +139,7 @@ export async function fetchHistory(): Promise<HistoryEntry[]> {
     .from('raffle_history')
     .select('id, number, old_status, new_status, old_buyer, new_buyer, changed_at')
     .order('changed_at', { ascending: false })
-    .limit(50)
+    .limit(300)
   if (error) throw error
   return data as HistoryEntry[]
 }
@@ -152,10 +158,6 @@ function saveDemoRequests(reqs: NumberRequest[]) {
   localStorage.setItem(DEMO_REQUESTS_KEY, JSON.stringify(reqs))
 }
 
-// Date.now() puede repetirse si llegan varias solicitudes en el mismo
-// milisegundo; el sufijo garantiza ids únicos (en Supabase lo hace la BD)
-let demoSeq = 0
-const demoId = () => Date.now() * 1000 + (demoSeq++ % 1000)
 
 /** Crea una solicitud desde el tablero público (el número queda bloqueado). */
 export async function requestNumber(
