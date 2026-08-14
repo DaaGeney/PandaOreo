@@ -1,15 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase, isDemo, ADMIN_EMAIL } from '../lib/supabase'
-import { fetchNumbers, updateNumber, fetchHistory, type HistoryEntry } from '../lib/store'
+import {
+  fetchNumbers,
+  updateNumber,
+  fetchHistory,
+  fetchPendingRequests,
+  approveRequest,
+  rejectRequest,
+  type HistoryEntry,
+} from '../lib/store'
 import { shareCardPng } from '../lib/exportImage'
-import type { RaffleNumber } from '../lib/types'
+import type { RaffleNumber, NumberRequest } from '../lib/types'
 import { pad2 } from '../lib/types'
 import NumberGrid from '../components/NumberGrid'
 import NumberModal from '../components/NumberModal'
 import StatsBar from '../components/StatsBar'
 import ExportCard from '../components/ExportCard'
 import BuyersList from '../components/BuyersList'
+import PendingRequests from '../components/PendingRequests'
 import PullToRefreshIndicator from '../components/PullToRefreshIndicator'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
 
@@ -26,6 +35,7 @@ export default function AdminPage() {
   const [copied, setCopied] = useState(false)
   const [history, setHistory] = useState<HistoryEntry[]>([])
   const [showHistory, setShowHistory] = useState(false)
+  const [requests, setRequests] = useState<NumberRequest[]>([])
   const exportRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -42,7 +52,12 @@ export default function AdminPage() {
 
   const load = useCallback(async () => {
     try {
-      setNumbers(await fetchNumbers())
+      const [board, pending] = await Promise.all([
+        fetchNumbers(),
+        fetchPendingRequests().catch(() => []),
+      ])
+      setNumbers(board)
+      setRequests(pending)
       setLoadError(null)
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : 'Error cargando los números')
@@ -167,6 +182,20 @@ export default function AdminPage() {
       )}
 
       <StatsBar numbers={numbers} />
+
+      <div className="mt-4">
+        <PendingRequests
+          requests={requests}
+          onApprove={async (r) => {
+            await approveRequest(r)
+            await load()
+          }}
+          onReject={async (r) => {
+            await rejectRequest(r)
+            await load()
+          }}
+        />
+      </div>
 
       <div className="flex gap-2 my-4">
         <input

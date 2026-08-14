@@ -1,8 +1,9 @@
 import { supabase, isDemo } from './supabase'
-import type { RaffleNumber, NumberStatus } from './types'
+import type { RaffleNumber, NumberStatus, BoardStatus, NumberRequest } from './types'
 
 const DEMO_KEY = 'rifa-demo-numbers'
 const DEMO_HISTORY_KEY = 'rifa-demo-history'
+const DEMO_REQUESTS_KEY = 'rifa-demo-requests'
 
 export interface HistoryEntry {
   id: number
@@ -50,16 +51,26 @@ export async function fetchNumbers(): Promise<RaffleNumber[]> {
   return data as RaffleNumber[]
 }
 
+export interface BoardCell {
+  number: number
+  status: BoardStatus
+}
+
 /** Tablero público: solo número y estado, vía la vista public_board. */
-export async function fetchPublicBoard(): Promise<Pick<RaffleNumber, 'number' | 'status'>[]> {
-  if (isDemo)
-    return loadDemo().map(({ number, status }) => ({ number, status }))
+export async function fetchPublicBoard(): Promise<BoardCell[]> {
+  if (isDemo) {
+    const pending = new Set(loadDemoRequests().map((r) => r.number))
+    return loadDemo().map(({ number, status }) => ({
+      number,
+      status: status === 'available' && pending.has(number) ? 'pending' : status,
+    }))
+  }
   const { data, error } = await supabase!
     .from('public_board')
     .select('number, status')
     .order('number')
   if (error) throw error
-  return data as Pick<RaffleNumber, 'number' | 'status'>[]
+  return data as BoardCell[]
 }
 
 export async function updateNumber(entry: RaffleNumber): Promise<void> {
@@ -125,4 +136,90 @@ export async function fetchHistory(): Promise<HistoryEntry[]> {
     .limit(50)
   if (error) throw error
   return data as HistoryEntry[]
+}
+
+// ---------- Solicitudes desde el tablero público ----------
+
+function loadDemoRequests(): NumberRequest[] {
+  try {
+    return JSON.parse(localStorage.getItem(DEMO_REQUESTS_KEY) ?? '[]')
+  } catch {
+    return []
+  }
+}
+
+function saveDemoRequests(reqs: NumberRequest[]) {
+  localStorage.setItem(DEMO_REQUESTS_KEY, JSON.stringify(reqs))
+}
+
+/** Crea una solicitud desde el tablero público (el número queda bloqueado). */
+export async function requestNumber(
+  number: number,
+  name: string,
+  phone: string
+): Promise<void> {
+  if (isDemo) {
+    const board = loadDemo()
+    if (board[number].status !== 'available') throw new Error('Ese número ya está vendido')
+    const reqs = loadDemoRequests()
+    if (reqs.some((r) => r.number === number))
+      throw new Error('Ese número ya tiene una solicitud pendiente')
+    reqs.push({
+      id: Date.now(),
+      number,
+      name: name.trim(),
+      phone: phone.trim(),
+      created_at: new Date().toISOString(),
+    })
+    saveDemoRequests(reqs)
+    return
+  }
+  const { error } = await supabase!.rpc('request_number', {
+    p_number: number,
+    p_name: name.trim(),
+    p_phone: phone.trim(),
+  })
+  if (error) throw new Error(error.message)
+}
+
+/** Solicitudes pendientes, de la más reciente a la más antigua (solo admin). */
+export async function fetchPendingRequests(): Promise<NumberRequest[]> {
+  if (isDemo)
+    return loadDemoRequests().sort((a, b) => b.created_at.localeCompare(a.created_at))
+  const { data, error } = await supabase!
+    .from('number_requests')
+    .select('id, number, name, phone, created_at')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data as NumberRequest[]
+}
+
+/** Aprueba la solicitud: el número pasa a apartado con esos datos. */
+export async function approveRequest(req: NumberRequest): Promise<void> {
+  await updateNumber({
+    number: req.number,
+    buyer_name: req.name,
+    buyer_phone: req.phone,
+    sold_by: null,
+    status: 'reserved',
+  })
+  await closeRequest(req.id, 'approved')
+}
+
+/** Rechaza la solicitud y libera el número. */
+export async function rejectRequest(req: NumberRequest): Promise<void> {
+  await closeRequest(req.id, 'rejected')
+}
+
+async function closeRequest(id: number, status: 'approved' | 'rejected') {
+  if (isDemo) {
+    saveDemoRequests(loadDemoRequests().filter((r) => r.id !== id))
+    return
+  }
+  const { error } = await supabase!
+    .from('number_requests')
+    .update({ status })
+    .eq('id', id)
+  if (error) throw error
 }

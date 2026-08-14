@@ -1,11 +1,32 @@
 export type NumberStatus = 'available' | 'reserved' | 'paid'
 
+/** El tablero público suma 'pending': solicitado y a la espera de confirmación. */
+export type BoardStatus = NumberStatus | 'pending'
+
 export interface RaffleNumber {
   number: number
   buyer_name: string | null
   buyer_phone: string | null
   sold_by: string | null
   status: NumberStatus
+}
+
+export interface NumberRequest {
+  id: number
+  number: number
+  name: string
+  phone: string
+  created_at: string
+}
+
+/** Link de WhatsApp con el mensaje de confirmación ya escrito. */
+export function whatsappLink(phone: string, number: number, name: string) {
+  const digits = phone.replace(/\D/g, '')
+  const full = digits.length === 10 ? `57${digits}` : digits
+  const text = `Hola ${name}, te escribo por la ${RAFFLE_TITLE} 🐾 Confirmo tu número ${pad2(
+    number
+  )}. El valor es ${formatCOP(TICKET_PRICE)}. ¡Gracias por tu apoyo!`
+  return `https://wa.me/${full}?text=${encodeURIComponent(text)}`
 }
 
 export const TICKET_PRICE = 20000

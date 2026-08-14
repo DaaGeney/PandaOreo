@@ -1,8 +1,9 @@
-import type { RaffleNumber } from '../lib/types'
+import type { RaffleNumber, BoardStatus } from '../lib/types'
 import { pad2 } from '../lib/types'
 
-export type GridNumber = Pick<RaffleNumber, 'number' | 'status'> &
-  Partial<Pick<RaffleNumber, 'buyer_name' | 'buyer_phone' | 'sold_by'>>
+export type GridNumber = { number: number; status: BoardStatus } & Partial<
+  Pick<RaffleNumber, 'buyer_name' | 'buyer_phone' | 'sold_by'>
+>
 
 interface Props {
   numbers: GridNumber[]
@@ -16,30 +17,39 @@ export default function NumberGrid({ numbers, onSelect, publicView, highlight }:
   return (
     <div className="grid grid-cols-10 gap-1.5 sm:gap-2">
       {numbers.map((n) => {
-        const sold = n.status !== 'available'
+        const pending = n.status === 'pending'
+        const sold = n.status !== 'available' && !pending
         const cls = publicView
           ? sold
             ? 'bg-plum text-cream border-plum'
-            : 'bg-white text-plum border-plum/30'
+            : pending
+              ? 'bg-blush/30 text-plum border-blush border-dashed'
+              : 'bg-white text-plum border-plum/30'
           : n.status === 'paid'
             ? 'bg-plum text-cream border-plum'
             : n.status === 'reserved'
               ? 'bg-tangerine text-plum-dark border-tangerine'
               : 'bg-white text-plum border-plum/30'
+        // En el tablero público solo se pueden pedir los números libres
+        const clickable = onSelect && (!publicView || n.status === 'available')
         const dimmed = highlight && highlight.size > 0 && !highlight.has(n.number)
         return (
           <button
             key={n.number}
             type="button"
-            onClick={onSelect ? () => onSelect(n.number) : undefined}
-            disabled={!onSelect}
+            onClick={clickable ? () => onSelect!(n.number) : undefined}
+            disabled={!clickable}
             title={
-              !publicView && n.buyer_name
-                ? n.buyer_name + (n.sold_by ? ` · vende ${n.sold_by}` : '')
-                : undefined
+              publicView
+                ? pending
+                  ? 'Solicitado, pendiente de confirmar'
+                  : undefined
+                : n.buyer_name
+                  ? n.buyer_name + (n.sold_by ? ` · vende ${n.sold_by}` : '')
+                  : undefined
             }
             className={`aspect-square rounded-lg border text-sm sm:text-base font-bold flex items-center justify-center transition
-              ${cls} ${dimmed ? 'opacity-25' : ''} ${onSelect ? 'cursor-pointer hover:scale-105 hover:shadow-md' : 'cursor-default'}`}
+              ${cls} ${dimmed ? 'opacity-25' : ''} ${clickable ? 'cursor-pointer hover:scale-105 hover:shadow-md' : 'cursor-default'}`}
           >
             {pad2(n.number)}
           </button>

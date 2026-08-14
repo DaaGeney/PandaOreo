@@ -4,6 +4,7 @@ import { shareCardPng } from '../lib/exportImage'
 import type { GridNumber } from '../components/NumberGrid'
 import NumberGrid from '../components/NumberGrid'
 import ExportCard from '../components/ExportCard'
+import RequestModal from '../components/RequestModal'
 import PullToRefreshIndicator from '../components/PullToRefreshIndicator'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
 import { DRAW_DATE, PRIZE, TICKET_PRICE, CONTACT_LABEL, formatCOP } from '../lib/types'
@@ -13,7 +14,10 @@ const REFRESH_MS = 30_000
 export default function PublicBoard() {
   const [numbers, setNumbers] = useState<GridNumber[]>([])
   const [exporting, setExporting] = useState(false)
+  const [requesting, setRequesting] = useState<number | null>(null)
   const exportRef = useRef<HTMLDivElement>(null)
+
+  const reload = () => fetchPublicBoard().then(setNumbers).catch(() => {})
 
   const downloadImage = async () => {
     if (!exportRef.current) return
@@ -37,9 +41,7 @@ export default function PublicBoard() {
     }
   }, [])
 
-  const { pulling, refreshing } = usePullToRefresh(() =>
-    fetchPublicBoard().then(setNumbers).catch(() => {})
-  )
+  const { pulling, refreshing } = usePullToRefresh(reload)
 
   const available = numbers.filter((n) => n.status === 'available').length
 
@@ -58,13 +60,21 @@ export default function PublicBoard() {
         </p>
       </div>
 
+      <p className="text-center text-plum font-semibold mb-2">
+        👇 Toca un número libre para apartarlo
+      </p>
+
       <div className="bg-white rounded-2xl border-2 border-plum/15 p-3 sm:p-5 shadow-sm">
-        <NumberGrid numbers={numbers} publicView />
+        <NumberGrid numbers={numbers} publicView onSelect={setRequesting} />
       </div>
 
-      <div className="flex items-center justify-center gap-5 text-sm font-semibold text-plum mt-3">
+      <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-sm font-semibold text-plum mt-3">
         <span className="flex items-center gap-1.5">
           <span className="w-3.5 h-3.5 rounded bg-white border border-plum/30" /> Disponible
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-3.5 h-3.5 rounded border border-dashed border-blush bg-blush/30" />{' '}
+          Solicitado
         </span>
         <span className="flex items-center gap-1.5">
           <span className="w-3.5 h-3.5 rounded bg-plum" /> Vendido
@@ -86,6 +96,14 @@ export default function PublicBoard() {
       <p className="text-center text-blush font-semibold mt-1">
         Escríbeme para apartar tu número · ¡Gracias por tu apoyo! ♥
       </p>
+
+      {requesting !== null && (
+        <RequestModal
+          number={requesting}
+          onClose={() => setRequesting(null)}
+          onDone={reload}
+        />
+      )}
 
       {/* Tarjeta off-screen para la exportación PNG */}
       <div className="fixed -left-[3000px] top-0" aria-hidden="true">
