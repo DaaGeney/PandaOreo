@@ -26,11 +26,12 @@ export function whatsappLink(phone: string, numbers: number[], name: string) {
   const nums = numbers.map(pad2)
   const lista =
     nums.length === 1 ? nums[0] : `${nums.slice(0, -1).join(', ')} y ${nums.at(-1)}`
-  const text = `Hola ${name} 🐾 Te confirmo ${
+  // Sin emojis: WhatsApp Web los corrompe cuando llegan por el link (salen como "?")
+  const text = `Hola ${name}, te confirmo ${
     nums.length === 1 ? 'tu número' : 'tus números'
-  } ${lista} en la ${RAFFLE_TITLE}. ¡Gracias por la colaboración! 💜 Esta es mi llave Bre-B: ${BREB_KEY} · Recuerda cancelar antes del sorteo para que ${
+  } ${lista} en la ${RAFFLE_TITLE}. ¡Gracias por la colaboración! Esta es mi llave Bre-B: ${BREB_KEY}. Recuerda cancelar antes del sorteo para que ${
     nums.length === 1 ? 'tu número juegue' : 'tus números jueguen'
-  }. ¡Mucha suerte! 🍀`
+  }. ¡Mucha suerte!`
   return `https://wa.me/${full}?text=${encodeURIComponent(text)}`
 }
 
