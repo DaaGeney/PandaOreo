@@ -9,7 +9,7 @@ export interface RaffleNumber {
 }
 
 export const TICKET_PRICE = 20000
-export const PRIZE = 500000
+export const PRIZE = 1000000
 export const RAFFLE_TITLE = 'Rifa Solidaria Oreo y Panda'
 export const DRAW_DATE = 'Viernes 28 de agosto · Lotería de Medellín · 11:00 p.m.'
 
