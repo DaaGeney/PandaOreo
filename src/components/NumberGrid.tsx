@@ -11,20 +11,31 @@ interface Props {
   /** En vista pública, apartado y pagado se muestran igual (vendido). */
   publicView?: boolean
   highlight?: Set<number>
+  /** Números marcados por el visitante antes de enviar la solicitud. */
+  selected?: Set<number>
 }
 
-export default function NumberGrid({ numbers, onSelect, publicView, highlight }: Props) {
+export default function NumberGrid({
+  numbers,
+  onSelect,
+  publicView,
+  highlight,
+  selected,
+}: Props) {
   return (
     <div className="grid grid-cols-10 gap-1.5 sm:gap-2">
       {numbers.map((n) => {
         const pending = n.status === 'pending'
         const sold = n.status !== 'available' && !pending
+        const isSelected = selected?.has(n.number)
         const cls = publicView
           ? sold
             ? 'bg-plum text-cream border-plum'
             : pending
               ? 'bg-blush/30 text-plum border-blush border-dashed'
-              : 'bg-white text-plum border-plum/30'
+              : isSelected
+                ? 'bg-tangerine text-plum-dark border-tangerine ring-2 ring-plum scale-105'
+                : 'bg-white text-plum border-plum/30'
           : n.status === 'paid'
             ? 'bg-plum text-cream border-plum'
             : n.status === 'reserved'

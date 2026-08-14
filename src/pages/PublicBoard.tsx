@@ -14,6 +14,7 @@ import {
   CONTACT_LABEL,
   BREB_LABEL,
   formatCOP,
+  pad2,
 } from '../lib/types'
 
 const REFRESH_MS = 30_000
@@ -21,10 +22,33 @@ const REFRESH_MS = 30_000
 export default function PublicBoard() {
   const [numbers, setNumbers] = useState<GridNumber[]>([])
   const [exporting, setExporting] = useState(false)
-  const [requesting, setRequesting] = useState<number | null>(null)
+  const [selected, setSelected] = useState<Set<number>>(new Set())
+  // Lista congelada al abrir el formulario: la selección puede auto-limpiarse
+  // cuando el tablero se refresca, pero el modal debe seguir abierto
+  const [requesting, setRequesting] = useState<number[] | null>(null)
   const exportRef = useRef<HTMLDivElement>(null)
 
   const reload = () => fetchPublicBoard().then(setNumbers).catch(() => {})
+
+  const toggle = (n: number) =>
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(n)) next.delete(n)
+      else next.add(n)
+      return next
+    })
+
+  // Si un número marcado deja de estar libre (lo tomó alguien más
+  // o llegó un refresco), se quita solo de la selección
+  useEffect(() => {
+    if (numbers.length === 0) return
+    setSelected((prev) => {
+      const next = new Set(
+        [...prev].filter((n) => numbers[n]?.status === 'available')
+      )
+      return next.size === prev.size ? prev : next
+    })
+  }, [numbers])
 
   const downloadImage = async () => {
     if (!exportRef.current) return
@@ -68,11 +92,11 @@ export default function PublicBoard() {
       </div>
 
       <p className="text-center text-plum font-semibold mb-2">
-        👇 Toca un número libre para apartarlo
+        👇 Toca los números libres que quieras apartar
       </p>
 
       <div className="bg-white rounded-2xl border-2 border-plum/15 p-3 sm:p-5 shadow-sm">
-        <NumberGrid numbers={numbers} publicView onSelect={setRequesting} />
+        <NumberGrid numbers={numbers} publicView onSelect={toggle} selected={selected} />
       </div>
 
       <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-sm font-semibold text-plum mt-3">
@@ -105,9 +129,41 @@ export default function PublicBoard() {
         Escríbeme para apartar tu número · ¡Gracias por tu apoyo! ♥
       </p>
 
+      {/* Barra flotante con la selección lista para enviar */}
+      {selected.size > 0 && requesting === null && (
+        <div className="fixed bottom-0 inset-x-0 z-40 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div className="max-w-2xl mx-auto bg-plum text-cream rounded-2xl shadow-xl flex items-center gap-3 px-4 py-3">
+            <div className="min-w-0 flex-1">
+              <p className="font-bold truncate">
+                {[...selected].sort((a, b) => a - b).map((n) => pad2(n)).join(' · ')}
+              </p>
+              <p className="text-sm text-cream/80">
+                {selected.size} número{selected.size === 1 ? '' : 's'} ·{' '}
+                {formatCOP(selected.size * TICKET_PRICE)}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelected(new Set())}
+              className="shrink-0 text-cream/80 hover:text-cream font-bold px-2 py-1"
+              aria-label="Limpiar selección"
+            >
+              ✕
+            </button>
+            <button
+              type="button"
+              onClick={() => setRequesting([...selected].sort((a, b) => a - b))}
+              className="shrink-0 bg-tangerine text-plum-dark font-bold rounded-xl px-4 py-2.5 hover:brightness-105"
+            >
+              Apartar
+            </button>
+          </div>
+        </div>
+      )}
+
       {requesting !== null && (
         <RequestModal
-          number={requesting}
+          numbers={requesting}
           onClose={() => setRequesting(null)}
           onDone={reload}
         />

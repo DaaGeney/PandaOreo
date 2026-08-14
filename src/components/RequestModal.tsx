@@ -1,19 +1,28 @@
 import { useState } from 'react'
 import { requestNumber } from '../lib/store'
-import { pad2, formatCOP, TICKET_PRICE, CONTACT_NAME } from '../lib/types'
+import {
+  pad2,
+  formatCOP,
+  TICKET_PRICE,
+  CONTACT_NAME,
+  CONTACT_PHONE,
+} from '../lib/types'
 
 interface Props {
-  number: number
+  numbers: number[]
   onClose: () => void
   onDone: () => void
 }
 
-export default function RequestModal({ number, onClose, onDone }: Props) {
+export default function RequestModal({ numbers, onClose, onDone }: Props) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [done, setDone] = useState(false)
+  const [granted, setGranted] = useState<number[] | null>(null)
+  const [missed, setMissed] = useState<number[]>([])
+
+  const list = (nums: number[]) => nums.map(pad2).join(', ')
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -23,14 +32,45 @@ export default function RequestModal({ number, onClose, onDone }: Props) {
 
     setSending(true)
     setError(null)
-    try {
-      await requestNumber(number, name, phone)
-      setDone(true)
-      onDone()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo enviar. Intenta de nuevo.')
-      setSending(false)
+
+    const ok: number[] = []
+    const taken: number[] = []
+    let notReady = false
+    for (const n of numbers) {
+      try {
+        await requestNumber(n, name, phone)
+        ok.push(n)
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : ''
+        // Backend sin la función/tabla de solicitudes (SQL aún no ejecutado)
+        if (/request_number|schema cache|does not exist/i.test(msg)) {
+          notReady = true
+          break
+        }
+        taken.push(n)
+      }
     }
+
+    if (notReady) {
+      setError(
+        `Las solicitudes en línea aún no están activas. Escríbele a ${CONTACT_NAME} al WhatsApp ${CONTACT_PHONE} para apartar tus números.`
+      )
+      setSending(false)
+      return
+    }
+    if (ok.length === 0) {
+      setError(
+        numbers.length === 1
+          ? 'Ese número ya fue tomado por alguien más. Elige otro.'
+          : 'Esos números ya fueron tomados por alguien más. Elige otros.'
+      )
+      setSending(false)
+      onDone()
+      return
+    }
+    setGranted(ok)
+    setMissed(taken)
+    onDone()
   }
 
   return (
@@ -43,15 +83,22 @@ export default function RequestModal({ number, onClose, onDone }: Props) {
         className="bg-cream rounded-2xl shadow-xl w-full max-w-sm p-5"
         onClick={(e) => e.stopPropagation()}
       >
-        {done ? (
+        {granted ? (
           <div className="text-center">
             <p className="text-5xl mb-3">🐾</p>
             <h2 className="text-xl font-black text-plum mb-2">
-              ¡Listo! Apartamos el {pad2(number)}
+              ¡Listo! Apartamos {granted.length === 1 ? 'el' : 'los'} {list(granted)}
             </h2>
+            {missed.length > 0 && (
+              <p className="text-sm font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">
+                {missed.length === 1 ? 'El' : 'Los'} {list(missed)} ya{' '}
+                {missed.length === 1 ? 'estaba tomado' : 'estaban tomados'} por alguien
+                más.
+              </p>
+            )}
             <p className="text-ink mb-5">
-              {CONTACT_NAME} te escribirá por WhatsApp para confirmar tu número y
-              coordinar el pago.
+              ¡Gracias por la colaboración! 💜 {CONTACT_NAME} te escribirá por WhatsApp
+              para confirmar.
             </p>
             <button
               type="button"
@@ -65,17 +112,18 @@ export default function RequestModal({ number, onClose, onDone }: Props) {
           <>
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-xl font-bold text-plum">
-                Pedir el{' '}
+                {numbers.length === 1 ? 'Pedir el' : 'Pedir los'}{' '}
                 <span className="bg-plum text-cream rounded-lg px-2 py-0.5">
-                  {pad2(number)}
+                  {list(numbers)}
                 </span>
               </h2>
-              <span className="text-sm text-plum-light font-semibold">
-                {formatCOP(TICKET_PRICE)}
+              <span className="shrink-0 ml-2 text-sm text-plum-light font-semibold">
+                {formatCOP(numbers.length * TICKET_PRICE)}
               </span>
             </div>
             <p className="text-sm text-plum-light mb-4">
-              Queda apartado mientras {CONTACT_NAME} te confirma por WhatsApp.
+              {numbers.length === 1 ? 'Queda apartado' : 'Quedan apartados'} mientras{' '}
+              {CONTACT_NAME} te confirma por WhatsApp.
             </p>
 
             <form onSubmit={submit}>
@@ -108,7 +156,11 @@ export default function RequestModal({ number, onClose, onDone }: Props) {
                   disabled={sending}
                   className="rounded-lg bg-plum text-cream font-bold py-2.5 hover:brightness-110 disabled:opacity-50"
                 >
-                  {sending ? 'Enviando…' : 'Apartar'}
+                  {sending
+                    ? 'Enviando…'
+                    : numbers.length === 1
+                      ? 'Apartar'
+                      : `Apartar los ${numbers.length}`}
                 </button>
                 <button
                   type="button"

@@ -23,9 +23,9 @@ export interface NumberRequest {
 export function whatsappLink(phone: string, number: number, name: string) {
   const digits = phone.replace(/\D/g, '')
   const full = digits.length === 10 ? `57${digits}` : digits
-  const text = `Hola ${name}, te escribo por la ${RAFFLE_TITLE} 🐾 Confirmo tu número ${pad2(
+  const text = `Hola ${name} 🐾 Te confirmo tu número ${pad2(
     number
-  )}. El valor es ${formatCOP(TICKET_PRICE)}. ¡Gracias por tu apoyo!`
+  )} en la ${RAFFLE_TITLE}. ¡Gracias por la colaboración! 💜 Te recuerdo mi llave Bre-B por si aún no has pagado: ${BREB_KEY}. ¡Mucha suerte!`
   return `https://wa.me/${full}?text=${encodeURIComponent(text)}`
 }
 
