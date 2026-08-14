@@ -243,13 +243,39 @@ export default function AdminPage() {
         />
       </div>
 
-      <div className="flex gap-2 my-4">
+      <div className="flex flex-col sm:flex-row gap-2 my-4">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar por nombre…"
-          className="flex-1 rounded-xl border border-plum/25 bg-white px-3 py-2 outline-none focus:border-plum"
+          className="flex-1 min-w-0 rounded-xl border border-plum/25 bg-white px-3 py-2 outline-none focus:border-plum"
         />
+        {/* En celular: dos arriba y movimientos abajo. En pantalla ancha: los tres en línea. */}
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
+          <button
+            type="button"
+            onClick={exportImage}
+            disabled={exporting}
+            className="whitespace-nowrap bg-plum text-cream font-bold rounded-xl px-4 py-2 hover:brightness-110 disabled:opacity-50"
+          >
+            {exporting ? 'Generando…' : '📲 Compartir'}
+          </button>
+          <button
+            type="button"
+            onClick={copyPublicLink}
+            className="whitespace-nowrap border-2 border-plum text-plum font-bold rounded-xl px-4 py-2 hover:bg-white"
+          >
+            {copied ? '✅ Copiado' : '🔗 Link'}
+          </button>
+          <button
+            type="button"
+            onClick={openHistory}
+            aria-haspopup="dialog"
+            className="col-span-2 sm:col-auto whitespace-nowrap border border-plum/30 text-plum font-semibold rounded-xl px-4 py-2 hover:bg-white"
+          >
+            🕘 Movimientos
+          </button>
+        </div>
       </div>
 
       <div className="lg:grid lg:grid-cols-[1fr_300px] lg:gap-5 lg:items-start">
@@ -271,33 +297,6 @@ export default function AdminPage() {
 
         <BuyersList numbers={numbers} onSelect={setSelected} highlight={highlight} />
       </div>
-
-      <div className="grid grid-cols-2 gap-2 mb-2">
-        <button
-          type="button"
-          onClick={exportImage}
-          disabled={exporting}
-          className="bg-plum text-cream font-bold rounded-xl py-3 hover:brightness-110 disabled:opacity-50"
-        >
-          {exporting ? 'Generando…' : '📲 Compartir números'}
-        </button>
-        <button
-          type="button"
-          onClick={copyPublicLink}
-          className="border-2 border-plum text-plum font-bold rounded-xl py-3 hover:bg-white"
-        >
-          {copied ? '✅ Copiado' : '🔗 Copiar link público'}
-        </button>
-      </div>
-
-      <button
-        type="button"
-        onClick={openHistory}
-        aria-haspopup="dialog"
-        className="w-full border border-plum/25 text-plum font-semibold rounded-xl py-2.5 hover:bg-white"
-      >
-        🕘 Ver movimientos
-      </button>
 
       {showHistory && (
         <HistoryModal
