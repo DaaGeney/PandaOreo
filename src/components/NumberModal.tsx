@@ -48,6 +48,7 @@ export default function NumberModal({ entry, onSave, onClose }: Props) {
 
   return (
     <div
+      data-modal
       className="fixed inset-0 bg-ink/50 flex items-center justify-center p-4 z-50"
       onClick={onClose}
     >

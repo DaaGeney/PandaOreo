@@ -9,6 +9,7 @@ import NumberGrid from '../components/NumberGrid'
 import NumberModal from '../components/NumberModal'
 import StatsBar from '../components/StatsBar'
 import ExportCard from '../components/ExportCard'
+import BuyersList from '../components/BuyersList'
 import PullToRefreshIndicator from '../components/PullToRefreshIndicator'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
 
@@ -136,7 +137,7 @@ export default function AdminPage() {
   const selectedEntry = selected !== null ? numbers.find((n) => n.number === selected) : undefined
 
   return (
-    <div className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+    <div className="max-w-2xl lg:max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
       <header className="flex items-center justify-between mb-4">
         <h1 className="text-xl sm:text-2xl font-black text-plum">Rifa Oreo y Panda 🐾</h1>
         {!isDemo && (
@@ -176,18 +177,24 @@ export default function AdminPage() {
         />
       </div>
 
-      <NumberGrid numbers={numbers} onSelect={setSelected} highlight={highlight} />
+      <div className="lg:grid lg:grid-cols-[1fr_300px] lg:gap-5 lg:items-start">
+        <div>
+          <NumberGrid numbers={numbers} onSelect={setSelected} highlight={highlight} />
 
-      <div className="flex items-center justify-center gap-4 text-xs sm:text-sm font-semibold text-plum mt-3 mb-5">
-        <span className="flex items-center gap-1.5">
-          <span className="w-3.5 h-3.5 rounded bg-white border border-plum/30" /> Libre
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-3.5 h-3.5 rounded bg-tangerine" /> Apartado (debe)
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-3.5 h-3.5 rounded bg-plum" /> Pagado
-        </span>
+          <div className="flex items-center justify-center gap-4 text-xs sm:text-sm font-semibold text-plum mt-3 mb-5">
+            <span className="flex items-center gap-1.5">
+              <span className="w-3.5 h-3.5 rounded bg-white border border-plum/30" /> Libre
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-3.5 h-3.5 rounded bg-tangerine" /> Apartado (debe)
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-3.5 h-3.5 rounded bg-plum" /> Pagado
+            </span>
+          </div>
+        </div>
+
+        <BuyersList numbers={numbers} onSelect={setSelected} highlight={highlight} />
       </div>
 
       <div className="grid grid-cols-2 gap-2 mb-2">

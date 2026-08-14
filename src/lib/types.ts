@@ -13,7 +13,8 @@ export const PRIZE = 1000000
 export const RAFFLE_TITLE = 'Rifa Solidaria Oreo y Panda'
 export const DRAW_DATE = 'Viernes 28 de agosto · Lotería de Medellín · 11:00 p.m.'
 export const CONTACT_PHONE = '3008827856'
-export const CONTACT_LABEL = `Contacto: ${CONTACT_PHONE}`
+export const CONTACT_NAME = 'Diego Assia'
+export const CONTACT_LABEL = `Responsable: ${CONTACT_NAME} · ${CONTACT_PHONE}`
 
 export const formatCOP = (value: number) =>
   new Intl.NumberFormat('es-CO', {
