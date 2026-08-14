@@ -152,6 +152,11 @@ function saveDemoRequests(reqs: NumberRequest[]) {
   localStorage.setItem(DEMO_REQUESTS_KEY, JSON.stringify(reqs))
 }
 
+// Date.now() puede repetirse si llegan varias solicitudes en el mismo
+// milisegundo; el sufijo garantiza ids únicos (en Supabase lo hace la BD)
+let demoSeq = 0
+const demoId = () => Date.now() * 1000 + (demoSeq++ % 1000)
+
 /** Crea una solicitud desde el tablero público (el número queda bloqueado). */
 export async function requestNumber(
   number: number,
@@ -165,7 +170,7 @@ export async function requestNumber(
     if (reqs.some((r) => r.number === number))
       throw new Error('Ese número ya tiene una solicitud pendiente')
     reqs.push({
-      id: Date.now(),
+      id: demoId(),
       number,
       name: name.trim(),
       phone: phone.trim(),

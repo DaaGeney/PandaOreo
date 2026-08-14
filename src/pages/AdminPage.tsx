@@ -186,12 +186,12 @@ export default function AdminPage() {
       <div className="mt-4">
         <PendingRequests
           requests={requests}
-          onApprove={async (r) => {
-            await approveRequest(r)
+          onApprove={async (reqs) => {
+            for (const r of reqs) await approveRequest(r)
             await load()
           }}
-          onReject={async (r) => {
-            await rejectRequest(r)
+          onReject={async (reqs) => {
+            for (const r of reqs) await rejectRequest(r)
             await load()
           }}
         />

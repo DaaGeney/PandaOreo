@@ -19,13 +19,18 @@ export interface NumberRequest {
   created_at: string
 }
 
-/** Link de WhatsApp con el mensaje de confirmación ya escrito. */
-export function whatsappLink(phone: string, number: number, name: string) {
+/** Link de WhatsApp con el mensaje de confirmación ya escrito (uno o varios números). */
+export function whatsappLink(phone: string, numbers: number[], name: string) {
   const digits = phone.replace(/\D/g, '')
   const full = digits.length === 10 ? `57${digits}` : digits
-  const text = `Hola ${name} 🐾 Te confirmo tu número ${pad2(
-    number
-  )} en la ${RAFFLE_TITLE}. ¡Gracias por la colaboración! 💜 Te recuerdo mi llave Bre-B por si aún no has pagado: ${BREB_KEY}. ¡Mucha suerte!`
+  const nums = numbers.map(pad2)
+  const lista =
+    nums.length === 1 ? nums[0] : `${nums.slice(0, -1).join(', ')} y ${nums.at(-1)}`
+  const text = `Hola ${name} 🐾 Te confirmo ${
+    nums.length === 1 ? 'tu número' : 'tus números'
+  } ${lista} en la ${RAFFLE_TITLE}. ¡Gracias por la colaboración! 💜 Esta es mi llave Bre-B: ${BREB_KEY} · Recuerda cancelar antes del sorteo para que ${
+    nums.length === 1 ? 'tu número juegue' : 'tus números jueguen'
+  }. ¡Mucha suerte! 🍀`
   return `https://wa.me/${full}?text=${encodeURIComponent(text)}`
 }
 

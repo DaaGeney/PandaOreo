@@ -72,11 +72,24 @@ export default function NumberModal({ entry, onSave, onClose }: Props) {
               <Row label="Vendido por" value={entry.sold_by ?? '—'} />
             </div>
 
+            {entry.status === 'reserved' && (
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => save('paid')}
+                className="w-full rounded-lg bg-plum text-cream font-bold py-2.5 mb-2 hover:brightness-110 disabled:opacity-50"
+              >
+                {saving ? 'Guardando…' : '💰 Marcar pagado'}
+              </button>
+            )}
+
+            {error && <p className="text-sm text-red-700 mb-2">{error}</p>}
+
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setEditing(true)}
-                className="rounded-lg bg-plum text-cream font-bold py-2.5 hover:brightness-110"
+                className="rounded-lg border border-plum/30 text-plum font-semibold py-2.5 hover:bg-white"
               >
                 ✏️ Editar
               </button>
