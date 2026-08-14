@@ -4,6 +4,8 @@ import { shareCardPng } from '../lib/exportImage'
 import type { GridNumber } from '../components/NumberGrid'
 import NumberGrid from '../components/NumberGrid'
 import ExportCard from '../components/ExportCard'
+import PullToRefreshIndicator from '../components/PullToRefreshIndicator'
+import { usePullToRefresh } from '../hooks/usePullToRefresh'
 import { DRAW_DATE, PRIZE, TICKET_PRICE, CONTACT_LABEL, formatCOP } from '../lib/types'
 
 const REFRESH_MS = 30_000
@@ -35,10 +37,15 @@ export default function PublicBoard() {
     }
   }, [])
 
+  const { pulling, refreshing } = usePullToRefresh(() =>
+    fetchPublicBoard().then(setNumbers).catch(() => {})
+  )
+
   const available = numbers.filter((n) => n.status === 'available').length
 
   return (
     <div className="max-w-2xl mx-auto px-3 sm:px-4 py-6">
+      <PullToRefreshIndicator pulling={pulling} refreshing={refreshing} />
       <div className="text-center mb-5">
         <span className="inline-block bg-plum text-cream text-sm sm:text-base font-bold tracking-[0.25em] rounded-lg px-4 py-1 uppercase mb-2">
           Rifa Solidaria

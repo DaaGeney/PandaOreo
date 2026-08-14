@@ -9,6 +9,10 @@ import NumberGrid from '../components/NumberGrid'
 import NumberModal from '../components/NumberModal'
 import StatsBar from '../components/StatsBar'
 import ExportCard from '../components/ExportCard'
+import PullToRefreshIndicator from '../components/PullToRefreshIndicator'
+import { usePullToRefresh } from '../hooks/usePullToRefresh'
+
+const REFRESH_MS = 30_000
 
 export default function AdminPage() {
   const [session, setSession] = useState<Session | null>(null)
@@ -45,8 +49,18 @@ export default function AdminPage() {
   }, [])
 
   useEffect(() => {
-    if (isAdmin) load()
+    if (!isAdmin) return
+    load()
+    const interval = setInterval(load, REFRESH_MS)
+    const onVisible = () => document.visibilityState === 'visible' && load()
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [isAdmin, load])
+
+  const { pulling, refreshing } = usePullToRefresh(load)
 
   const highlight = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -135,6 +149,8 @@ export default function AdminPage() {
           </button>
         )}
       </header>
+
+      <PullToRefreshIndicator pulling={pulling} refreshing={refreshing} />
 
       {isDemo && (
         <div className="bg-tangerine/20 border border-tangerine rounded-xl px-3 py-2 text-sm text-plum-dark mb-4">
