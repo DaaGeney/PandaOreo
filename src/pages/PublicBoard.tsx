@@ -4,7 +4,7 @@ import { shareCardPng } from '../lib/exportImage'
 import type { GridNumber } from '../components/NumberGrid'
 import NumberGrid from '../components/NumberGrid'
 import ExportCard from '../components/ExportCard'
-import { DRAW_DATE, PRIZE, TICKET_PRICE, formatCOP } from '../lib/types'
+import { DRAW_DATE, PRIZE, TICKET_PRICE, CONTACT_LABEL, formatCOP } from '../lib/types'
 
 const REFRESH_MS = 30_000
 
@@ -75,6 +75,7 @@ export default function PublicBoard() {
       </button>
 
       <p className="text-center text-plum-dark font-bold mt-5">{DRAW_DATE}</p>
+      <p className="text-center text-ink font-bold mt-2">📲 {CONTACT_LABEL}</p>
       <p className="text-center text-blush font-semibold mt-1">
         Escríbeme para apartar tu número · ¡Gracias por tu apoyo! ♥
       </p>

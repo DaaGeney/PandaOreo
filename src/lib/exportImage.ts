@@ -1,4 +1,5 @@
 import { toPng } from 'html-to-image'
+import { CONTACT_LABEL } from './types'
 
 /**
  * Genera el PNG de la tarjeta y lo comparte con la hoja nativa del sistema
@@ -15,7 +16,7 @@ export async function shareCardPng(node: HTMLElement): Promise<'shared' | 'downl
       await navigator.share({
         files: [file],
         title: 'Rifa Solidaria Oreo y Panda',
-        text: '¡Apoya la rifa de Oreo y Panda! 🐾 Mira los números disponibles:',
+        text: `¡Apoya la rifa de Oreo y Panda! 🐾 Mira los números disponibles:\n${CONTACT_LABEL}`,
       })
       return 'shared'
     } catch (e) {
