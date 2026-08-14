@@ -1,6 +1,14 @@
 import { forwardRef } from 'react'
 import type { GridNumber } from './NumberGrid'
-import { pad2, DRAW_DATE, PRIZE, TICKET_PRICE, CONTACT_LABEL, formatCOP } from '../lib/types'
+import {
+  pad2,
+  DRAW_DATE,
+  PRIZE,
+  TICKET_PRICE,
+  CONTACT_LABEL,
+  BREB_LABEL,
+  formatCOP,
+} from '../lib/types'
 
 /**
  * Tarjeta con la estética del afiche para exportar como PNG.
@@ -59,6 +67,7 @@ const ExportCard = forwardRef<HTMLDivElement, { numbers: GridNumber[] }>(
 
         <p className="text-center text-plum-dark text-xl font-bold">{DRAW_DATE}</p>
         <p className="text-center text-ink text-xl font-bold mt-2">📲 {CONTACT_LABEL}</p>
+        <p className="text-center text-plum text-xl font-bold mt-1">💸 {BREB_LABEL}</p>
         <p className="text-center text-blush text-lg font-semibold mt-1">
           ¡Gracias por ayudarnos a seguir a su lado! ♥
         </p>
