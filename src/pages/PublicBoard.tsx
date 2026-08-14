@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { fetchPublicBoard } from '../lib/store'
-import { downloadCardPng } from '../lib/exportImage'
+import { shareCardPng } from '../lib/exportImage'
 import type { GridNumber } from '../components/NumberGrid'
 import NumberGrid from '../components/NumberGrid'
 import ExportCard from '../components/ExportCard'
@@ -17,7 +17,7 @@ export default function PublicBoard() {
     if (!exportRef.current) return
     setExporting(true)
     try {
-      await downloadCardPng(exportRef.current)
+      await shareCardPng(exportRef.current)
     } finally {
       setExporting(false)
     }
@@ -71,7 +71,7 @@ export default function PublicBoard() {
         disabled={exporting || numbers.length === 0}
         className="block mx-auto mt-5 bg-plum text-cream font-bold rounded-xl px-6 py-3 hover:brightness-110 disabled:opacity-50"
       >
-        {exporting ? 'Generando…' : '📸 Descargar imagen para compartir'}
+        {exporting ? 'Generando…' : '📲 Compartir imagen de la rifa'}
       </button>
 
       <p className="text-center text-plum-dark font-bold mt-5">{DRAW_DATE}</p>

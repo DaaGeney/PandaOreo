@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase, isDemo, ADMIN_EMAIL } from '../lib/supabase'
 import { fetchNumbers, updateNumber, fetchHistory, type HistoryEntry } from '../lib/store'
-import { downloadCardPng } from '../lib/exportImage'
+import { shareCardPng } from '../lib/exportImage'
 import type { RaffleNumber } from '../lib/types'
 import { pad2 } from '../lib/types'
 import NumberGrid from '../components/NumberGrid'
@@ -72,7 +72,7 @@ export default function AdminPage() {
     if (!exportRef.current) return
     setExporting(true)
     try {
-      await downloadCardPng(exportRef.current)
+      await shareCardPng(exportRef.current)
     } finally {
       setExporting(false)
     }
@@ -181,7 +181,7 @@ export default function AdminPage() {
           disabled={exporting}
           className="bg-plum text-cream font-bold rounded-xl py-3 hover:brightness-110 disabled:opacity-50"
         >
-          {exporting ? 'Generando…' : '📸 Exportar imagen'}
+          {exporting ? 'Generando…' : '📲 Compartir imagen'}
         </button>
         <button
           type="button"
