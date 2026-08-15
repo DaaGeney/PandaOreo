@@ -243,6 +243,18 @@ async function closeRequest(id: number, status: 'approved' | 'rejected') {
 
 const DONATION_COLUMNS = 'id, name, phone, amount, kind, number, note, created_at'
 
+/**
+ * Traduce el error de «la tabla no existe» a algo accionable: pasa cuando se
+ * publica la app sin haber ejecutado todavía supabase/aportes.sql.
+ */
+function donationError(error: { message?: string }): Error {
+  const message = error.message ?? 'No se pudo guardar el aporte.'
+  return /donations/i.test(message) &&
+    /does not exist|schema cache|no existe/i.test(message)
+    ? new Error('Falta crear la tabla de aportes: ejecuta supabase/aportes.sql en Supabase.')
+    : new Error(message)
+}
+
 function loadDemoDonations(): Donation[] {
   try {
     return JSON.parse(localStorage.getItem(DEMO_DONATIONS_KEY) ?? '[]')
@@ -263,7 +275,7 @@ export async function fetchDonations(): Promise<Donation[]> {
     .from('donations')
     .select(DONATION_COLUMNS)
     .order('created_at', { ascending: false })
-  if (error) throw error
+  if (error) throw donationError(error)
   return data as Donation[]
 }
 
@@ -276,7 +288,7 @@ export async function addDonation(input: DonationInput): Promise<void> {
     return
   }
   const { error } = await supabase!.from('donations').insert(input)
-  if (error) throw error
+  if (error) throw donationError(error)
 }
 
 export async function updateDonation(id: number, input: DonationInput): Promise<void> {
@@ -287,7 +299,7 @@ export async function updateDonation(id: number, input: DonationInput): Promise<
     return
   }
   const { error } = await supabase!.from('donations').update(input).eq('id', id)
-  if (error) throw error
+  if (error) throw donationError(error)
 }
 
 export async function deleteDonation(id: number): Promise<void> {
@@ -296,5 +308,5 @@ export async function deleteDonation(id: number): Promise<void> {
     return
   }
   const { error } = await supabase!.from('donations').delete().eq('id', id)
-  if (error) throw error
+  if (error) throw donationError(error)
 }
