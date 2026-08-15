@@ -16,7 +16,7 @@ import {
 } from '../lib/store'
 import { shareCardPng } from '../lib/exportImage'
 import type { RaffleNumber, NumberRequest, Donation, DonationInput } from '../lib/types'
-import { normalize, sumDonations } from '../lib/types'
+import { normalize, sumDonations, formatCOP } from '../lib/types'
 import { findPeople, hitNumbers, didYouMean } from '../lib/search'
 import NumberGrid from '../components/NumberGrid'
 import NumberModal from '../components/NumberModal'
@@ -217,9 +217,33 @@ export default function AdminPage() {
     setDonations(await fetchDonations().catch(() => donations))
   }
 
-  const save = async (updated: RaffleNumber) => {
+  const save = async (updated: RaffleNumber, extra = 0) => {
     await updateNumber(updated)
     setNumbers((prev) => prev.map((n) => (n.number === updated.number ? updated : n)))
+
+    // Lo que pagó de más queda como aporte ligado a ese número. Va después de
+    // guardar el número: si falla, se avisa que el número sí quedó guardado.
+    if (extra > 0) {
+      try {
+        await addDonation({
+          name: updated.buyer_name ?? 'Sin nombre',
+          phone: updated.buyer_phone,
+          amount: extra,
+          kind: 'extra',
+          number: updated.number,
+          note: null,
+        })
+        setDonations(await fetchDonations().catch(() => donations))
+      } catch (e) {
+        const detalle = e instanceof Error ? e.message : 'error desconocido'
+        throw new Error(
+          `El número quedó guardado, pero no se pudo registrar el aporte de ${formatCOP(
+            extra
+          )}: ${detalle}`
+        )
+      }
+    }
+
     if (showHistory) setHistory(await fetchHistory().catch(() => []))
   }
 

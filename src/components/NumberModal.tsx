@@ -1,12 +1,20 @@
 import { useState } from 'react'
 import type { RaffleNumber } from '../lib/types'
-import { pad2, formatCOP, TICKET_PRICE, whatsappLink, paidLink } from '../lib/types'
+import {
+  pad2,
+  formatCOP,
+  formatThousands,
+  TICKET_PRICE,
+  whatsappLink,
+  paidLink,
+} from '../lib/types'
 import AutocompleteInput, { type Suggestion } from './AutocompleteInput'
 import WhatsAppIcon from './WhatsAppIcon'
 
 interface Props {
   entry: RaffleNumber
-  onSave: (updated: RaffleNumber) => Promise<void>
+  /** `extra` es lo que pagó de más: se registra como aporte junto al número. */
+  onSave: (updated: RaffleNumber, extra?: number) => Promise<void>
   onClose: () => void
   buyerOptions: Suggestion[]
   sellerOptions: Suggestion[]
@@ -27,6 +35,13 @@ export default function NumberModal({
   const [confirmStatus, setConfirmStatus] = useState<RaffleNumber['status'] | null>(null)
   // Un número ya vendido se abre bloqueado: hay que tocar «Editar» para cambiarlo
   const [editing, setEditing] = useState(entry.status === 'available')
+
+  // Cuánto entregó. Arranca en el precio del número: si se deja así no pasa
+  // nada raro, y si pone de más la diferencia se guarda como aporte.
+  const [paidDigits, setPaidDigits] = useState(String(TICKET_PRICE))
+  const handed = Number(paidDigits || 0)
+  const extra = Math.max(0, handed - TICKET_PRICE)
+  const missing = Math.max(0, TICKET_PRICE - handed)
 
   // A quien ya pagó se le agradece; a quien debe se le manda la llave para cobrar
   const whatsapp = entry.buyer_phone
@@ -51,13 +66,17 @@ export default function NumberModal({
     setSaving(true)
     setError(null)
     try {
-      await onSave({
-        number: entry.number,
-        buyer_name: status === 'available' ? null : name.trim(),
-        buyer_phone: status === 'available' ? null : phone.trim() || null,
-        sold_by: status === 'available' ? null : soldBy.trim() || null,
-        status,
-      })
+      await onSave(
+        {
+          number: entry.number,
+          buyer_name: status === 'available' ? null : name.trim(),
+          buyer_phone: status === 'available' ? null : phone.trim() || null,
+          sold_by: status === 'available' ? null : soldBy.trim() || null,
+          status,
+        },
+        // El excedente solo cuenta cuando de verdad se está cobrando
+        status === 'paid' ? extra : 0
+      )
       onClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo guardar. Intenta de nuevo.')
@@ -92,14 +111,24 @@ export default function NumberModal({
             </div>
 
             {entry.status === 'reserved' && (
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => save('paid')}
-                className="w-full rounded-lg bg-plum text-cream font-bold py-2.5 mb-2 hover:brightness-110 disabled:opacity-50"
-              >
-                {saving ? 'Guardando…' : '💰 Marcar pagado'}
-              </button>
+              <>
+                <PaidAmount
+                  label="¿Cuánto pagó?"
+                  digits={paidDigits}
+                  onChange={setPaidDigits}
+                  extra={extra}
+                  missing={missing}
+                  who={entry.buyer_name ?? ''}
+                />
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => save('paid')}
+                  className="w-full rounded-lg bg-plum text-cream font-bold py-2.5 mb-2 hover:brightness-110 disabled:opacity-50"
+                >
+                  {saving ? 'Guardando…' : `💰 Marcar pagado${extra > 0 ? ' + aporte' : ''}`}
+                </button>
+              </>
             )}
 
             {whatsapp ? (
@@ -186,6 +215,15 @@ export default function NumberModal({
           </p>
         )}
 
+        <PaidAmount
+          label="¿Cuánto pagó? (al marcar pagado)"
+          digits={paidDigits}
+          onChange={setPaidDigits}
+          extra={extra}
+          missing={missing}
+          who={name.trim()}
+        />
+
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
@@ -224,6 +262,79 @@ export default function NumberModal({
           </>
         )}
       </div>
+    </div>
+  )
+}
+
+/**
+ * Cuánto entregó la persona. Viene con el precio puesto para que el caso
+ * normal sea un solo toque; si entrega de más, la diferencia se avisa aquí
+ * y se guarda sola como aporte.
+ */
+function PaidAmount({
+  label,
+  digits,
+  onChange,
+  extra,
+  missing,
+  who,
+}: {
+  label: string
+  digits: string
+  onChange: (v: string) => void
+  extra: number
+  missing: number
+  who: string
+}) {
+  return (
+    <div className="bg-white rounded-xl border border-plum/15 px-3 py-2.5 mb-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-semibold text-plum">{label}</span>
+        <div className="flex items-center rounded-lg border-2 border-plum/25 px-2 focus-within:border-plum">
+          <span className="font-black text-plum-light">$</span>
+          <input
+            value={formatThousands(digits)}
+            onChange={(e) => onChange(e.target.value.replace(/\D/g, '').slice(0, 9))}
+            inputMode="numeric"
+            aria-label={label}
+            className="w-24 bg-transparent px-1 py-1 text-right text-lg font-black text-ink outline-none"
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5 mt-2">
+        {[1000, 5000, 10000, 20000].map((v) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => onChange(String(Number(digits || 0) + v))}
+            className="rounded-full border border-plum/25 px-2.5 py-0.5 text-xs font-bold text-plum hover:bg-blush/15 hover:border-blush"
+          >
+            +{formatThousands(String(v))}
+          </button>
+        ))}
+        {Number(digits || 0) !== TICKET_PRICE && (
+          <button
+            type="button"
+            onClick={() => onChange(String(TICKET_PRICE))}
+            className="rounded-full px-2.5 py-0.5 text-xs font-bold text-plum-light hover:text-plum"
+          >
+            Exacto
+          </button>
+        )}
+      </div>
+
+      {extra > 0 && (
+        <p className="text-xs font-semibold text-blush mt-2">
+          ♥ {formatCOP(extra)} de más: se guardan como aporte
+          {who ? ` de ${who}` : ''}.
+        </p>
+      )}
+      {missing > 0 && (
+        <p className="text-xs font-semibold text-tangerine mt-2">
+          Faltan {formatCOP(missing)} para el precio del número. Se marcará pagado igual.
+        </p>
+      )}
     </div>
   )
 }
