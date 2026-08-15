@@ -33,24 +33,28 @@ export default function DonationsPanel({ donations, onAdd, onEdit }: Props) {
 
   return (
     <section className="rounded-2xl border border-blush/40 bg-white overflow-hidden shadow-sm">
-      <header className="flex items-center gap-3 px-3 py-3 bg-gradient-to-r from-blush/25 to-blush/5">
-        <span className="grid place-items-center w-9 h-9 shrink-0 rounded-full bg-blush text-white text-lg shadow-sm">
-          ♥
-        </span>
-        <div className="min-w-0 flex-1">
-          <h2 className="font-bold text-plum-dark leading-tight text-sm sm:text-base">
+      {/* El título va solo en su línea: en la columna lateral no cabe al lado
+          del total, y partido en dos se lee mal. */}
+      <header className="px-3 py-3 bg-gradient-to-r from-blush/25 to-blush/5">
+        <div className="flex items-center gap-2.5">
+          <span className="grid place-items-center w-9 h-9 shrink-0 rounded-full bg-blush text-white text-lg shadow-sm">
+            ♥
+          </span>
+          <h2 className="min-w-0 font-bold text-plum-dark leading-tight text-sm truncate">
             Aportes y donaciones
           </h2>
-          <p className="text-xs text-plum-light">
+        </div>
+        <div className="flex items-end justify-between gap-2 mt-1 pl-[2.9rem]">
+          <p className="min-w-0 truncate text-xs text-plum-light">
             {donations.length === 0
               ? 'Lo que entra sin número'
               : `${donations.length} aporte${donations.length === 1 ? '' : 's'} · ${people} persona${
                   people === 1 ? '' : 's'
                 }`}
           </p>
-        </div>
-        <div className="shrink-0 text-lg sm:text-xl font-black text-plum leading-tight">
-          {formatCOP(total)}
+          <span className="shrink-0 text-lg font-black text-plum leading-none">
+            {formatCOP(total)}
+          </span>
         </div>
       </header>
 
@@ -93,9 +97,12 @@ export default function DonationsPanel({ donations, onAdd, onEdit }: Props) {
                     <span className="block truncate font-semibold text-ink text-sm">
                       {d.name}
                     </span>
+                    {/* Corto a propósito: en la columna lateral, «Pago extra en
+                        el 03» se cortaba justo en el número, que es el dato. */}
                     <span className="block truncate text-xs text-plum-light">
-                      {DONATION_LABEL[d.kind]}
-                      {d.number != null && ` en el ${pad2(d.number)}`}
+                      {d.kind === 'extra'
+                        ? `Extra${d.number != null ? ` nº${pad2(d.number)}` : ''}`
+                        : DONATION_LABEL.donation}
                       {' · '}
                       {formatDate(d.created_at)}
                       {d.note && ` · ${d.note}`}

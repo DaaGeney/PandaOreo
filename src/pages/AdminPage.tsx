@@ -308,7 +308,7 @@ export default function AdminPage() {
   const selectedEntry = selected !== null ? numbers.find((n) => n.number === selected) : undefined
 
   return (
-    <div className="max-w-2xl lg:max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+    <div className="max-w-2xl lg:max-w-6xl xl:max-w-[88rem] mx-auto px-3 sm:px-4 py-4 sm:py-6">
       <header className="flex items-center justify-between mb-4">
         <h1 className="text-xl sm:text-2xl font-black text-plum">Rifa Oreo y Panda 🐾</h1>
         {!isDemo && (
@@ -337,29 +337,39 @@ export default function AdminPage() {
         </div>
       )}
 
-      <StatsBar numbers={numbers} extra={totalDonations} />
+      {/* Lo urgente va arriba y a todo lo ancho, antes de repartir las columnas */}
+      <PendingRequests
+        requests={requests}
+        onApprove={async (reqs) => {
+          for (const r of reqs) await approveRequest(r)
+          await load()
+        }}
+        onReject={async (reqs) => {
+          for (const r of reqs) await rejectRequest(r)
+          await load()
+        }}
+      />
 
-      <div className="mt-4">
-        <PendingRequests
-          requests={requests}
-          onApprove={async (reqs) => {
-            for (const r of reqs) await approveRequest(r)
-            await load()
-          }}
-          onReject={async (reqs) => {
-            for (const r of reqs) await rejectRequest(r)
-            await load()
-          }}
-        />
+      {/*
+        Tres zonas en pantalla ancha: la plata a la izquierda, el tablero en el
+        centro y la gente a la derecha. En pantalla mediana la contabilidad pasa
+        arriba a todo lo ancho, y en celular se apila: plata, aportes, tablero.
+      */}
+      <div
+        className="flex flex-col gap-4 lg:grid lg:gap-5 lg:items-start
+          lg:grid-cols-[minmax(0,1fr)_20rem]
+          xl:grid-cols-[16.5rem_minmax(0,1fr)_21rem]"
+      >
+        <section className="lg:col-start-1 lg:row-start-1 lg:col-span-2 xl:col-span-1 xl:row-start-1">
+          <h2 className="hidden xl:block text-xs uppercase tracking-wide text-plum-light font-bold mb-2">
+            Contabilidad
+          </h2>
+          <StatsBar numbers={numbers} extra={totalDonations} />
+        </section>
 
-        <DonationsPanel
-          donations={donations}
-          onAdd={() => setDonationForm('new')}
-          onEdit={setDonationForm}
-        />
-      </div>
+        <main className="min-w-0 order-last lg:order-none lg:col-start-1 lg:row-start-2 xl:col-start-2 xl:row-start-1">
 
-      <div className="flex flex-col sm:flex-row gap-2 my-4">
+      <div className="flex flex-col sm:flex-row gap-2 mb-4">
         <AutocompleteInput
           label="Buscar por nombre"
           hideLabel
@@ -406,11 +416,9 @@ export default function AdminPage() {
         onPickSuggestion={setSearch}
       />
 
-      <div className="lg:grid lg:grid-cols-[1fr_300px] lg:gap-5 lg:items-start">
-        <div>
           <NumberGrid numbers={numbers} onSelect={setSelected} highlight={highlight} />
 
-          <div className="flex items-center justify-center gap-4 text-xs sm:text-sm font-semibold text-plum mt-3 mb-5">
+          <div className="flex items-center justify-center gap-4 text-xs sm:text-sm font-semibold text-plum mt-3">
             <span className="flex items-center gap-1.5">
               <span className="w-3.5 h-3.5 rounded bg-white border border-plum/30" /> Libre
             </span>
@@ -421,9 +429,17 @@ export default function AdminPage() {
               <span className="w-3.5 h-3.5 rounded bg-plum" /> Pagado
             </span>
           </div>
-        </div>
+        </main>
 
-        <BuyersList numbers={numbers} onSelect={setSelected} highlight={highlight} />
+        <aside className="flex flex-col gap-4 lg:col-start-2 lg:row-start-2 xl:col-start-3 xl:row-start-1">
+          <DonationsPanel
+            donations={donations}
+            onAdd={() => setDonationForm('new')}
+            onEdit={setDonationForm}
+          />
+
+          <BuyersList numbers={numbers} onSelect={setSelected} highlight={highlight} />
+        </aside>
       </div>
 
       {showHistory && (

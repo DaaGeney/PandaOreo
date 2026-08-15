@@ -24,7 +24,7 @@ export default function StatsBar({ numbers, extra = 0 }: Props) {
 
   return (
     <div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-1 gap-2 sm:gap-3">
         {/* La plata que ya está en el bolsillo va sola y más grande: es el dato
             que más se consulta, y necesita espacio para desglosar los aportes. */}
         <Tile
