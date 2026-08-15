@@ -55,33 +55,58 @@ export const sumDonations = (donations: Donation[]) =>
  */
 const bold = (text: string) => `*${text}*`
 
-/** Link de WhatsApp con el mensaje de confirmación ya escrito (uno o varios números). */
-export function whatsappLink(phone: string, numbers: number[], name: string) {
+/**
+ * Arma el link con el mensaje ya escrito. En Colombia los números se guardan
+ * a 10 dígitos, sin el indicativo que WhatsApp sí exige.
+ *
+ * Los mensajes van sin emojis a propósito: WhatsApp Web los corrompe cuando
+ * llegan por el link (salen como "?").
+ */
+function waLink(phone: string, text: string) {
   const digits = phone.replace(/\D/g, '')
   const full = digits.length === 10 ? `57${digits}` : digits
+  return `https://wa.me/${full}?text=${encodeURIComponent(text)}`
+}
+
+/** "07", o "03, 12 y 44" cuando son varios. */
+const listNumbers = (numbers: number[]) => {
   const nums = numbers.map(pad2)
-  const lista =
-    nums.length === 1 ? nums[0] : `${nums.slice(0, -1).join(', ')} y ${nums.at(-1)}`
-  // Sin emojis: WhatsApp Web los corrompe cuando llegan por el link (salen como "?")
-  const text = `Hola ${name}, te confirmo ${
-    nums.length === 1 ? 'tu número' : 'tus números'
-  } ${lista} en la ${RAFFLE_TITLE}. ¡Gracias por la colaboración! Esta es mi llave Bre-B: ${bold(
+  return nums.length === 1 ? nums[0] : `${nums.slice(0, -1).join(', ')} y ${nums.at(-1)}`
+}
+
+/** Confirmación con la llave para cobrar: para números apartados, que aún deben. */
+export function whatsappLink(phone: string, numbers: number[], name: string) {
+  const one = numbers.length === 1
+  const text = `Hola ${name}, te confirmo ${one ? 'tu número' : 'tus números'} ${bold(
+    listNumbers(numbers)
+  )} en la ${RAFFLE_TITLE}. ¡Gracias por la colaboración! Esta es mi llave Bre-B: ${bold(
     BREB_KEY
   )}. Recuerda cancelar antes del sorteo para que ${
-    nums.length === 1 ? 'tu número juegue' : 'tus números jueguen'
+    one ? 'tu número juegue' : 'tus números jueguen'
   }. ¡Mucha suerte!`
-  return `https://wa.me/${full}?text=${encodeURIComponent(text)}`
+  return waLink(phone, text)
+}
+
+/**
+ * Mensaje para quien ya pagó. Va aparte porque el de arriba pide el pago, y
+ * cobrarle a quien ya pagó queda muy mal.
+ */
+export function paidLink(phone: string, numbers: number[], name: string) {
+  const one = numbers.length === 1
+  const text = `Hola ${name}, ya recibí tu pago. ${
+    one ? 'Tu número' : 'Tus números'
+  } ${bold(listNumbers(numbers))} ${
+    one ? 'queda confirmado' : 'quedan confirmados'
+  } en la ${RAFFLE_TITLE}. ¡Mucha suerte y gracias por la colaboración!`
+  return waLink(phone, text)
 }
 
 /** Link de WhatsApp para agradecer un aporte o una donación. */
 export function thanksLink(phone: string, name: string, amount: number) {
-  const digits = phone.replace(/\D/g, '')
-  const full = digits.length === 10 ? `57${digits}` : digits
-  // Sin emojis: WhatsApp Web los corrompe cuando llegan por el link
-  const text = `Hola ${name}, mil gracias por tu aporte de ${formatCOP(
-    amount
+  const text = `Hola ${name}, mil gracias por tu aporte de ${bold(
+    formatCOP(amount)
   )} a la ${RAFFLE_TITLE}. De corazon, gracias por ayudarnos a seguir a su lado.`
-  return `https://wa.me/${full}?text=${encodeURIComponent(text)}`
+  return waLink(phone, text)
 }
 
 export const TICKET_PRICE = 20000

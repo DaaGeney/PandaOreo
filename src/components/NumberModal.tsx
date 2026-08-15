@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { RaffleNumber } from '../lib/types'
-import { pad2, formatCOP, TICKET_PRICE } from '../lib/types'
+import { pad2, formatCOP, TICKET_PRICE, whatsappLink, paidLink } from '../lib/types'
 import AutocompleteInput, { type Suggestion } from './AutocompleteInput'
+import WhatsAppIcon from './WhatsAppIcon'
 
 interface Props {
   entry: RaffleNumber
@@ -26,6 +27,15 @@ export default function NumberModal({
   const [confirmStatus, setConfirmStatus] = useState<RaffleNumber['status'] | null>(null)
   // Un número ya vendido se abre bloqueado: hay que tocar «Editar» para cambiarlo
   const [editing, setEditing] = useState(entry.status === 'available')
+
+  // A quien ya pagó se le agradece; a quien debe se le manda la llave para cobrar
+  const whatsapp = entry.buyer_phone
+    ? (entry.status === 'paid' ? paidLink : whatsappLink)(
+        entry.buyer_phone,
+        [entry.number],
+        entry.buyer_name ?? ''
+      )
+    : null
 
   const save = async (status: RaffleNumber['status']) => {
     if (status !== 'available' && !name.trim()) {
@@ -90,6 +100,24 @@ export default function NumberModal({
               >
                 {saving ? 'Guardando…' : '💰 Marcar pagado'}
               </button>
+            )}
+
+            {whatsapp ? (
+              <a
+                href={whatsapp}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full flex items-center justify-center gap-2 rounded-lg bg-[#25D366] text-white font-bold py-2.5 mb-2 hover:brightness-105"
+              >
+                <WhatsAppIcon />
+                {entry.status === 'paid' ? 'Escribir por WhatsApp' : 'Cobrar por WhatsApp'}
+              </a>
+            ) : (
+              entry.status !== 'available' && (
+                <p className="text-xs text-plum-light text-center mb-2">
+                  Sin teléfono guardado para escribirle por WhatsApp.
+                </p>
+              )
             )}
 
             {error && <p className="text-sm text-red-700 mb-2">{error}</p>}
