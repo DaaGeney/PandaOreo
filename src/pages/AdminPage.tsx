@@ -8,17 +8,23 @@ import {
   fetchPendingRequests,
   approveRequest,
   rejectRequest,
+  fetchDonations,
+  addDonation,
+  updateDonation,
+  deleteDonation,
   type HistoryEntry,
 } from '../lib/store'
 import { shareCardPng } from '../lib/exportImage'
-import type { RaffleNumber, NumberRequest } from '../lib/types'
-import { normalize } from '../lib/types'
+import type { RaffleNumber, NumberRequest, Donation, DonationInput } from '../lib/types'
+import { normalize, sumDonations } from '../lib/types'
 import NumberGrid from '../components/NumberGrid'
 import NumberModal from '../components/NumberModal'
 import StatsBar from '../components/StatsBar'
 import ExportCard from '../components/ExportCard'
 import BuyersList from '../components/BuyersList'
 import PendingRequests from '../components/PendingRequests'
+import DonationsPanel from '../components/DonationsPanel'
+import DonationModal from '../components/DonationModal'
 import HistoryModal from '../components/HistoryModal'
 import PullToRefreshIndicator from '../components/PullToRefreshIndicator'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
@@ -39,6 +45,9 @@ export default function AdminPage() {
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyError, setHistoryError] = useState(false)
   const [requests, setRequests] = useState<NumberRequest[]>([])
+  const [donations, setDonations] = useState<Donation[]>([])
+  // null = cerrado · 'new' = registrando · Donation = editando ese aporte
+  const [donationForm, setDonationForm] = useState<Donation | 'new' | null>(null)
   const exportRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -55,12 +64,16 @@ export default function AdminPage() {
 
   const load = useCallback(async () => {
     try {
-      const [board, pending] = await Promise.all([
+      // Solicitudes y aportes no tumban el tablero: si su tabla aún no existe
+      // en Supabase, el resto de la administración sigue funcionando.
+      const [board, pending, contributions] = await Promise.all([
         fetchNumbers(),
         fetchPendingRequests().catch(() => []),
+        fetchDonations().catch(() => []),
       ])
       setNumbers(board)
       setRequests(pending)
+      setDonations(contributions)
       setLoadError(null)
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : 'Error cargando los números')
@@ -130,6 +143,34 @@ export default function AdminPage() {
       .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, 'es'))
       .map(({ value }) => ({ value }))
   }, [numbers])
+
+  // Para el formulario de aportes: quienes ya tienen números y quienes ya
+  // aportaron antes, sin repetir a nadie.
+  const donorOptions = useMemo(() => {
+    const map = new Map<string, { value: string; hint?: string }>()
+    for (const { value, hint } of buyerOptions) map.set(normalize(value), { value, hint })
+    for (const d of donations) {
+      const key = normalize(d.name)
+      const prev = map.get(key)
+      if (!prev) map.set(key, { value: d.name, hint: d.phone ?? undefined })
+      else if (!prev.hint && d.phone) prev.hint = d.phone
+    }
+    return [...map.values()].sort((a, b) => a.value.localeCompare(b.value, 'es'))
+  }, [buyerOptions, donations])
+
+  const totalDonations = useMemo(() => sumDonations(donations), [donations])
+
+  const saveDonation = async (input: DonationInput) => {
+    if (donationForm && donationForm !== 'new') await updateDonation(donationForm.id, input)
+    else await addDonation(input)
+    setDonations(await fetchDonations().catch(() => donations))
+  }
+
+  const removeDonation = async () => {
+    if (!donationForm || donationForm === 'new') return
+    await deleteDonation(donationForm.id)
+    setDonations(await fetchDonations().catch(() => donations))
+  }
 
   const save = async (updated: RaffleNumber) => {
     await updateNumber(updated)
@@ -227,7 +268,7 @@ export default function AdminPage() {
         </div>
       )}
 
-      <StatsBar numbers={numbers} />
+      <StatsBar numbers={numbers} extra={totalDonations} />
 
       <div className="mt-4">
         <PendingRequests
@@ -240,6 +281,12 @@ export default function AdminPage() {
             for (const r of reqs) await rejectRequest(r)
             await load()
           }}
+        />
+
+        <DonationsPanel
+          donations={donations}
+          onAdd={() => setDonationForm('new')}
+          onEdit={setDonationForm}
         />
       </div>
 
@@ -304,6 +351,17 @@ export default function AdminPage() {
           loading={historyLoading}
           error={historyError}
           onClose={closeHistory}
+        />
+      )}
+
+      {donationForm && (
+        <DonationModal
+          donation={donationForm === 'new' ? undefined : donationForm}
+          numbers={numbers}
+          nameOptions={donorOptions}
+          onSave={saveDonation}
+          onDelete={donationForm === 'new' ? undefined : removeDonation}
+          onClose={() => setDonationForm(null)}
         />
       )}
 

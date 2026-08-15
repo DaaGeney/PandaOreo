@@ -1,9 +1,17 @@
 import { supabase, isDemo } from './supabase'
-import type { RaffleNumber, NumberStatus, BoardStatus, NumberRequest } from './types'
+import type {
+  RaffleNumber,
+  NumberStatus,
+  BoardStatus,
+  NumberRequest,
+  Donation,
+  DonationInput,
+} from './types'
 
 const DEMO_KEY = 'rifa-demo-numbers'
 const DEMO_HISTORY_KEY = 'rifa-demo-history'
 const DEMO_REQUESTS_KEY = 'rifa-demo-requests'
+const DEMO_DONATIONS_KEY = 'rifa-demo-donations'
 
 // Date.now() se repite si ocurren varios registros en el mismo milisegundo,
 // y los ids duplicados rompen el renderizado de las listas. El sufijo los
@@ -228,5 +236,65 @@ async function closeRequest(id: number, status: 'approved' | 'rejected') {
     .from('number_requests')
     .update({ status })
     .eq('id', id)
+  if (error) throw error
+}
+
+// ---------- Aportes: donaciones y pagos extra ----------
+
+const DONATION_COLUMNS = 'id, name, phone, amount, kind, number, note, created_at'
+
+function loadDemoDonations(): Donation[] {
+  try {
+    return JSON.parse(localStorage.getItem(DEMO_DONATIONS_KEY) ?? '[]')
+  } catch {
+    return []
+  }
+}
+
+function saveDemoDonations(donations: Donation[]) {
+  localStorage.setItem(DEMO_DONATIONS_KEY, JSON.stringify(donations))
+}
+
+/** Aportes registrados, del más reciente al más antiguo (solo admin). */
+export async function fetchDonations(): Promise<Donation[]> {
+  if (isDemo)
+    return loadDemoDonations().sort((a, b) => b.created_at.localeCompare(a.created_at))
+  const { data, error } = await supabase!
+    .from('donations')
+    .select(DONATION_COLUMNS)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data as Donation[]
+}
+
+export async function addDonation(input: DonationInput): Promise<void> {
+  if (isDemo) {
+    saveDemoDonations([
+      { ...input, id: demoId(), created_at: new Date().toISOString() },
+      ...loadDemoDonations(),
+    ])
+    return
+  }
+  const { error } = await supabase!.from('donations').insert(input)
+  if (error) throw error
+}
+
+export async function updateDonation(id: number, input: DonationInput): Promise<void> {
+  if (isDemo) {
+    saveDemoDonations(
+      loadDemoDonations().map((d) => (d.id === id ? { ...d, ...input } : d))
+    )
+    return
+  }
+  const { error } = await supabase!.from('donations').update(input).eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteDonation(id: number): Promise<void> {
+  if (isDemo) {
+    saveDemoDonations(loadDemoDonations().filter((d) => d.id !== id))
+    return
+  }
+  const { error } = await supabase!.from('donations').delete().eq('id', id)
   if (error) throw error
 }

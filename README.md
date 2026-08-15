@@ -4,6 +4,11 @@ App para llevar el control de la rifa solidaria: quién tiene cada número (00�
 quién pagó y quién debe, con tablero público para compartir y exportación de
 imagen estilo afiche.
 
+También lleva los **aportes**: la plata que entra por fuera del precio del número,
+sea una donación de quien no quiere boleta o lo que alguien paga de más. Todo se
+suma a «Recibido» y al «Total esperado», así que el resumen de arriba siempre
+cuadra con lo que hay en el bolsillo.
+
 ## Correr en local
 
 ```bash
@@ -20,7 +25,10 @@ perfecto para probar. Rutas:
 ## Conectar Supabase (datos en la nube + login)
 
 1. Crea un proyecto gratis en [supabase.com](https://supabase.com).
-2. En **SQL Editor**, pega y ejecuta el contenido de [`supabase/schema.sql`](supabase/schema.sql).
+2. En **SQL Editor**, pega y ejecuta el contenido de [`supabase/schema.sql`](supabase/schema.sql)
+   y después el de [`supabase/aportes.sql`](supabase/aportes.sql), que crea la tabla de
+   donaciones y pagos extra. Mientras no lo ejecutes, el panel de aportes se ve vacío y
+   no deja guardar; el resto de la administración funciona igual.
 3. Crea tu usuario admin: **Authentication → Users → Add user**, con el correo
    `diegoassia@gmail.com` y una contraseña (marca "Auto confirm user").
 4. Desactiva el registro de extraños: **Authentication → Sign In / Up →
