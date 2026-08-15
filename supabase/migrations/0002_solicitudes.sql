@@ -1,8 +1,7 @@
 -- Solicitudes de números desde el tablero público.
--- Pegar completo en el SQL Editor de Supabase y ejecutar UNA sola vez.
--- (Complementa supabase/schema.sql; no modifica los datos que ya tienes.)
+-- Equivale al antiguo supabase/solicitudes.sql.
 
-create table public.number_requests (
+create table if not exists public.number_requests (
   id bigint generated always as identity primary key,
   number int not null references public.raffle_numbers(number),
   name text not null,
@@ -13,17 +12,19 @@ create table public.number_requests (
 );
 
 -- Un número no puede tener dos solicitudes pendientes a la vez
-create unique index number_requests_one_pending
+create unique index if not exists number_requests_one_pending
   on public.number_requests (number)
   where status = 'pending';
 
 alter table public.number_requests enable row level security;
 
 -- Solo el admin ve y resuelve las solicitudes (los teléfonos nunca son públicos)
+drop policy if exists "admin lee solicitudes" on public.number_requests;
 create policy "admin lee solicitudes" on public.number_requests
   for select to authenticated
   using ((auth.jwt() ->> 'email') = 'diegoassia@gmail.com');
 
+drop policy if exists "admin actualiza solicitudes" on public.number_requests;
 create policy "admin actualiza solicitudes" on public.number_requests
   for update to authenticated
   using ((auth.jwt() ->> 'email') = 'diegoassia@gmail.com')

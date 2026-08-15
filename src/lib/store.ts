@@ -245,13 +245,13 @@ const DONATION_COLUMNS = 'id, name, phone, amount, kind, number, note, created_a
 
 /**
  * Traduce el error de «la tabla no existe» a algo accionable: pasa cuando se
- * publica la app sin haber ejecutado todavía supabase/aportes.sql.
+ * publica la app sin haber corrido todavía las migraciones.
  */
 function donationError(error: { message?: string }): Error {
   const message = error.message ?? 'No se pudo guardar el aporte.'
   return /donations/i.test(message) &&
     /does not exist|schema cache|no existe/i.test(message)
-    ? new Error('Falta crear la tabla de aportes: ejecuta supabase/aportes.sql en Supabase.')
+    ? new Error('Falta la tabla de aportes: corre las migraciones (npm run migrate).')
     : new Error(message)
 }
 

@@ -25,27 +25,66 @@ perfecto para probar. Rutas:
 ## Conectar Supabase (datos en la nube + login)
 
 1. Crea un proyecto gratis en [supabase.com](https://supabase.com).
-2. En **SQL Editor**, pega y ejecuta el contenido de [`supabase/schema.sql`](supabase/schema.sql)
-   y después el de [`supabase/aportes.sql`](supabase/aportes.sql), que crea la tabla de
-   donaciones y pagos extra. Mientras no lo ejecutes, el panel de aportes se ve vacío y
-   no deja guardar; el resto de la administración funciona igual.
-3. Crea tu usuario admin: **Authentication → Users → Add user**, con el correo
+2. Copia `.env.example` a `.env` y llena `VITE_SUPABASE_URL` y
+   `VITE_SUPABASE_ANON_KEY` (Project Settings → API), más `DATABASE_URL`
+   (Project Settings → Database → Connection string → URI).
+3. Crea las tablas: `npm run migrate` (ver [Migraciones](#migraciones)).
+4. Crea tu usuario admin: **Authentication → Users → Add user**, con el correo
    `diegoassia@gmail.com` y una contraseña (marca "Auto confirm user").
-4. Desactiva el registro de extraños: **Authentication → Sign In / Up →
+5. Desactiva el registro de extraños: **Authentication → Sign In / Up →
    Allow new users to sign up → OFF**.
-5. Copia `.env.example` a `.env` y llena `VITE_SUPABASE_URL` y
-   `VITE_SUPABASE_ANON_KEY` (Project Settings → API).
 6. Reinicia `npm run dev`.
 
 Solo el email `diegoassia@gmail.com` puede administrar (definido en las
-políticas de `supabase/schema.sql` y en `src/lib/supabase.ts`); aunque alguien
+políticas de las migraciones y en `src/lib/supabase.ts`); aunque alguien
 creara otra cuenta, RLS le bloquea lecturas y escrituras.
+
+## Migraciones
+
+El esquema vive en [`supabase/migrations/`](supabase/migrations), numerado y en
+orden. Cada archivo se aplica **una sola vez** y queda anotado en la tabla
+`schema_migrations`; cada uno corre dentro de una transacción, así que si falla
+a la mitad la base queda como estaba antes de empezarlo.
+
+```bash
+npm run migrate          # aplica lo que falte
+npm run migrate:status   # qué hay aplicado y qué falta (no toca nada)
+```
+
+Necesitan `DATABASE_URL`. **Sin esa variable el comando no hace nada y termina
+bien**, para que un `npm run build` local nunca intente tocar una base.
+
+### Si tu base ya existía (creada a mano en el SQL Editor)
+
+Hay que decirle al sistema qué migraciones ya corriste, para que no las vuelva a
+ejecutar. Mientras no lo hagas, `npm run migrate` **se niega a tocar la base** y
+te lo advierte.
+
+```bash
+npm run migrate:baseline -- --upto=0003_notificaciones
+```
+
+Eso las marca como aplicadas **sin ejecutar nada**. Después, `npm run migrate`
+aplica solo lo que de verdad falta (hoy: `0004_aportes`).
+
+Ajusta el `--upto` a lo último que hayas corrido: `0001_esquema_base` (el
+tablero), `0002_solicitudes` (solicitudes públicas) o `0003_notificaciones`
+(avisos por ntfy).
+
+### Al desplegar
+
+`npm run build` ejecuta las migraciones antes de compilar (script `prebuild`).
+Para que corran en el despliegue, define `DATABASE_URL` en el hosting.
+
+> **Importante:** defínela solo en el entorno de **producción**. Si la pones
+> también en los *preview* de Vercel, cada rama que subas migraría la base real.
 
 ## Deploy en Vercel
 
 1. Sube el proyecto a un repo de GitHub y conéctalo en [vercel.com](https://vercel.com)
    (framework: Vite), o usa `npx vercel` desde la terminal.
-2. Agrega las dos variables de entorno del `.env` en Vercel.
+2. Agrega `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`. Agrega `DATABASE_URL`
+   solo si quieres que el deploy migre la base (ver arriba).
 3. El link público para compartir será `https://tu-app.vercel.app/tablero`.
 
 > Nota: para que `/tablero` funcione al entrar directo, Vercel ya reescribe las

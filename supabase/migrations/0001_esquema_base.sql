@@ -1,7 +1,7 @@
--- Esquema de la rifa Oreo y Panda.
--- Pegar completo en el SQL Editor de Supabase y ejecutar una sola vez.
+-- Tablero de la rifa: los 100 números, su historial y la vista pública.
+-- Equivale al antiguo supabase/schema.sql.
 
-create table public.raffle_numbers (
+create table if not exists public.raffle_numbers (
   number int primary key check (number between 0 and 99),
   buyer_name text,
   buyer_phone text,
@@ -11,17 +11,21 @@ create table public.raffle_numbers (
   updated_at timestamptz not null default now()
 );
 
--- Sembrar los 100 números
+-- Sembrar los 100 números. El "on conflict" deja correr esto de nuevo sin
+-- tocar los datos que ya existan.
 insert into public.raffle_numbers (number)
-select generate_series(0, 99);
+select generate_series(0, 99)
+on conflict (number) do nothing;
 
 alter table public.raffle_numbers enable row level security;
 
--- Solo el admin (por email de Google) puede leer y escribir la tabla completa
+-- Solo el admin (por email) puede leer y escribir la tabla completa
+drop policy if exists "admin lee todo" on public.raffle_numbers;
 create policy "admin lee todo" on public.raffle_numbers
   for select to authenticated
   using ((auth.jwt() ->> 'email') = 'diegoassia@gmail.com');
 
+drop policy if exists "admin actualiza" on public.raffle_numbers;
 create policy "admin actualiza" on public.raffle_numbers
   for update to authenticated
   using ((auth.jwt() ->> 'email') = 'diegoassia@gmail.com')
@@ -29,7 +33,7 @@ create policy "admin actualiza" on public.raffle_numbers
 
 -- Historial de cambios (respaldo ante equivocaciones).
 -- Lo llena automáticamente un trigger en cada actualización.
-create table public.raffle_history (
+create table if not exists public.raffle_history (
   id bigint generated always as identity primary key,
   number int not null,
   old_status text,
@@ -41,6 +45,7 @@ create table public.raffle_history (
 
 alter table public.raffle_history enable row level security;
 
+drop policy if exists "admin lee historial" on public.raffle_history;
 create policy "admin lee historial" on public.raffle_history
   for select to authenticated
   using ((auth.jwt() ->> 'email') = 'diegoassia@gmail.com');
@@ -57,6 +62,7 @@ begin
 end;
 $$;
 
+drop trigger if exists raffle_numbers_audit on public.raffle_numbers;
 create trigger raffle_numbers_audit
   after update on public.raffle_numbers
   for each row
@@ -68,7 +74,7 @@ create trigger raffle_numbers_audit
 
 -- Vista pública: solo número y estado, sin datos personales.
 -- security_definer para que pueda leer la tabla aunque anon no tenga acceso.
-create view public.public_board
+create or replace view public.public_board
   with (security_invoker = false) as
   select number, status from public.raffle_numbers;
 

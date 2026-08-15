@@ -1,9 +1,7 @@
 -- Notificación push (vía ntfy.sh) cada vez que alguien solicita un número.
--- Requisitos:
---   1. Haber ejecutado antes supabase/solicitudes.sql
---   2. Tener la app ntfy en el celular, suscrito al tema de abajo
--- Pegar completo en el SQL Editor de Supabase y ejecutar UNA sola vez.
-
+-- Requiere tener la app ntfy en el celular, suscrito al tema de abajo.
+-- Equivale al antiguo supabase/notificaciones.sql.
+--
 -- El tema funciona como contraseña: quien lo conozca puede leer estas
 -- notificaciones. Por eso lleva un sufijo aleatorio y el mensaje no
 -- incluye el teléfono del solicitante (ese se ve solo en tu panel).
@@ -33,6 +31,7 @@ begin
 end;
 $$;
 
+drop trigger if exists number_requests_notify on public.number_requests;
 create trigger number_requests_notify
   after insert on public.number_requests
   for each row
