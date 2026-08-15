@@ -54,6 +54,26 @@ npm run migrate:status   # qué hay aplicado y qué falta (no toca nada)
 Necesitan `DATABASE_URL`. **Sin esa variable el comando no hace nada y termina
 bien**, para que un `npm run build` local nunca intente tocar una base.
 
+> En Supabase (Project Settings → Database → Connection string) usa la **URI
+> directa o el _Session pooler_, puerto 5432**. El _Transaction pooler_ (6543)
+> no sirve aquí: reparte cada consulta por una conexión distinta y rompe el
+> candado que evita que dos despliegues se pisen.
+
+### Saber qué migraciones ya corriste
+
+Pega esto en el **SQL Editor** de Supabase. Solo consulta, no cambia nada:
+
+```sql
+select
+  to_regclass('public.raffle_numbers')  is not null as "0001_esquema_base",
+  to_regclass('public.number_requests') is not null as "0002_solicitudes",
+  exists (select 1 from pg_trigger
+          where tgname = 'number_requests_notify')  as "0003_notificaciones",
+  to_regclass('public.donations')       is not null as "0004_aportes";
+```
+
+La última que salga en `true` es tu `--upto`.
+
 ### Si tu base ya existía (creada a mano en el SQL Editor)
 
 Hay que decirle al sistema qué migraciones ya corriste, para que no las vuelva a
