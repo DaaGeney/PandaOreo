@@ -16,6 +16,12 @@ interface Props {
   suggestions: Suggestion[]
   placeholder?: string
   autoFocus?: boolean
+  /** El label queda solo para lectores de pantalla (buscador, que ya se explica solo). */
+  hideLabel?: boolean
+  /** Reemplaza el ancho y el margen por defecto cuando el campo va en una barra. */
+  className?: string
+  /** Muestra una ✕ para vaciar el campo de un toque. */
+  clearable?: boolean
 }
 
 const MAX = 6
@@ -32,6 +38,9 @@ export default function AutocompleteInput({
   suggestions,
   placeholder,
   autoFocus,
+  hideLabel,
+  className,
+  clearable,
 }: Props) {
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(-1)
@@ -76,9 +85,13 @@ export default function AutocompleteInput({
     }
   }
 
+  const showClear = clearable && value !== ''
+
   return (
-    <label className="block mb-3 relative">
-      <span className="text-sm font-semibold text-plum">{label}</span>
+    <label className={`relative ${className ?? 'block mb-3'}`}>
+      <span className={hideLabel ? 'sr-only' : 'text-sm font-semibold text-plum'}>
+        {label}
+      </span>
       <input
         value={value}
         onChange={(e) => {
@@ -96,8 +109,21 @@ export default function AutocompleteInput({
         aria-expanded={show}
         aria-controls={listId}
         aria-autocomplete="list"
-        className="mt-1 w-full rounded-lg border border-plum/30 bg-white px-3 py-2 outline-none focus:border-plum"
+        className={`w-full border border-plum/30 bg-white py-2 pl-3 outline-none focus:border-plum ${
+          hideLabel ? 'rounded-xl' : 'mt-1 rounded-lg'
+        } ${showClear ? 'pr-9' : 'pr-3'}`}
       />
+
+      {showClear && (
+        <button
+          type="button"
+          onClick={() => onChange('')}
+          aria-label="Limpiar búsqueda"
+          className="absolute right-1 bottom-1 grid place-items-center w-8 h-8 rounded-lg text-plum-light hover:text-plum hover:bg-cream"
+        >
+          ✕
+        </button>
+      )}
 
       {show && (
         <ul

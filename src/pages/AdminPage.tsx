@@ -17,15 +17,18 @@ import {
 import { shareCardPng } from '../lib/exportImage'
 import type { RaffleNumber, NumberRequest, Donation, DonationInput } from '../lib/types'
 import { normalize, sumDonations } from '../lib/types'
+import { findPeople, hitNumbers, didYouMean } from '../lib/search'
 import NumberGrid from '../components/NumberGrid'
 import NumberModal from '../components/NumberModal'
 import StatsBar from '../components/StatsBar'
 import ExportCard from '../components/ExportCard'
 import BuyersList from '../components/BuyersList'
 import PendingRequests from '../components/PendingRequests'
+import SearchResults from '../components/SearchResults'
 import DonationsPanel from '../components/DonationsPanel'
 import DonationModal from '../components/DonationModal'
 import HistoryModal from '../components/HistoryModal'
+import AutocompleteInput from '../components/AutocompleteInput'
 import PullToRefreshIndicator from '../components/PullToRefreshIndicator'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
 
@@ -94,19 +97,61 @@ export default function AdminPage() {
 
   const { pulling, refreshing } = usePullToRefresh(load)
 
-  const highlight = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    if (!q) return undefined
-    return new Set(
-      numbers
-        .filter(
-          (n) =>
-            n.buyer_name?.toLowerCase().includes(q) ||
-            n.sold_by?.toLowerCase().includes(q)
-        )
-        .map((n) => n.number)
-    )
-  }, [search, numbers])
+  // Una sola pasada por lo buscado: de aquí salen el resaltado del tablero,
+  // la lista de resultados y los nombres parecidos si no hubo ninguno.
+  const results = useMemo(
+    () => findPeople(numbers, donations, search),
+    [numbers, donations, search]
+  )
+
+  const highlight = useMemo(
+    () => (search.trim() ? hitNumbers(results) : undefined),
+    [search, results]
+  )
+
+  // Sugerencias del buscador: toda la gente conocida, con lo que tiene cada uno.
+  const searchOptions = useMemo(() => {
+    interface Entry {
+      value: string
+      owned: number
+      sold: number
+      donated: boolean
+    }
+    const map = new Map<string, Entry>()
+    const entry = (name: string) => {
+      const key = normalize(name)
+      let found = map.get(key)
+      if (!found) map.set(key, (found = { value: name.trim(), owned: 0, sold: 0, donated: false }))
+      return found
+    }
+    for (const n of numbers) {
+      if (n.buyer_name?.trim()) entry(n.buyer_name).owned++
+      if (n.sold_by?.trim()) entry(n.sold_by).sold++
+    }
+    for (const d of donations) if (d.name.trim()) entry(d.name).donated = true
+
+    return [...map.values()]
+      .sort((a, b) => b.owned - a.owned || a.value.localeCompare(b.value, 'es'))
+      .map((e) => ({
+        value: e.value,
+        hint:
+          e.owned > 0
+            ? `${e.owned} número${e.owned === 1 ? '' : 's'}`
+            : e.sold > 0
+              ? `vendió ${e.sold}`
+              : e.donated
+                ? 'aporte'
+                : undefined,
+      }))
+  }, [numbers, donations])
+
+  const nameSuggestions = useMemo(
+    () =>
+      search.trim() && results.length === 0
+        ? didYouMean(search, searchOptions.map((o) => o.value))
+        : [],
+    [search, results, searchOptions]
+  )
 
   // Sugerencias para el formulario de venta, derivadas del tablero ya cargado.
   // Se ordenan por frecuencia: quien más números tiene aparece primero.
@@ -291,11 +336,15 @@ export default function AdminPage() {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-2 my-4">
-        <input
+        <AutocompleteInput
+          label="Buscar por nombre"
+          hideLabel
+          clearable
+          className="flex-1 min-w-0 block"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={setSearch}
+          suggestions={searchOptions}
           placeholder="Buscar por nombre…"
-          className="flex-1 min-w-0 rounded-xl border border-plum/25 bg-white px-3 py-2 outline-none focus:border-plum"
         />
         {/* En celular: dos arriba y movimientos abajo. En pantalla ancha: los tres en línea. */}
         <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
@@ -324,6 +373,14 @@ export default function AdminPage() {
           </button>
         </div>
       </div>
+
+      <SearchResults
+        query={search}
+        people={results}
+        suggestions={nameSuggestions}
+        onSelectNumber={setSelected}
+        onPickSuggestion={setSearch}
+      />
 
       <div className="lg:grid lg:grid-cols-[1fr_300px] lg:gap-5 lg:items-start">
         <div>

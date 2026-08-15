@@ -43,7 +43,11 @@ export default function NumberGrid({
               : 'bg-white text-plum border-plum/30'
         // En el tablero público solo se pueden pedir los números libres
         const clickable = onSelect && (!publicView || n.status === 'available')
-        const dimmed = highlight && highlight.size > 0 && !highlight.has(n.number)
+        const searching = highlight && highlight.size > 0
+        const dimmed = searching && !highlight.has(n.number)
+        // El resultado no solo se queda encendido: se le marca el borde para
+        // que salte a la vista entre los cien números
+        const hit = searching && highlight.has(n.number)
         return (
           <button
             key={n.number}
@@ -60,7 +64,9 @@ export default function NumberGrid({
                   : undefined
             }
             className={`aspect-square rounded-lg border text-sm sm:text-base font-bold flex items-center justify-center transition
-              ${cls} ${dimmed ? 'opacity-25' : ''} ${clickable ? 'cursor-pointer hover:scale-105 hover:shadow-md' : 'cursor-default'}`}
+              ${cls} ${dimmed ? 'opacity-20' : ''}
+              ${hit ? 'ring-2 ring-ink ring-offset-2 ring-offset-cream scale-105 shadow-md' : ''}
+              ${clickable ? 'cursor-pointer hover:scale-105 hover:shadow-md' : 'cursor-default'}`}
           >
             {pad2(n.number)}
           </button>
