@@ -49,6 +49,12 @@ export const DONATION_LABEL: Record<DonationKind, string> = {
 export const sumDonations = (donations: Donation[]) =>
   donations.reduce((total, d) => total + d.amount, 0)
 
+/**
+ * Negrita de WhatsApp: se escribe entre asteriscos y la app la aplica al
+ * enviar. Los asteriscos sobreviven a encodeURIComponent, que no los toca.
+ */
+const bold = (text: string) => `*${text}*`
+
 /** Link de WhatsApp con el mensaje de confirmación ya escrito (uno o varios números). */
 export function whatsappLink(phone: string, numbers: number[], name: string) {
   const digits = phone.replace(/\D/g, '')
@@ -59,7 +65,9 @@ export function whatsappLink(phone: string, numbers: number[], name: string) {
   // Sin emojis: WhatsApp Web los corrompe cuando llegan por el link (salen como "?")
   const text = `Hola ${name}, te confirmo ${
     nums.length === 1 ? 'tu número' : 'tus números'
-  } ${lista} en la ${RAFFLE_TITLE}. ¡Gracias por la colaboración! Esta es mi llave Bre-B: ${BREB_KEY}. Recuerda cancelar antes del sorteo para que ${
+  } ${lista} en la ${RAFFLE_TITLE}. ¡Gracias por la colaboración! Esta es mi llave Bre-B: ${bold(
+    BREB_KEY
+  )}. Recuerda cancelar antes del sorteo para que ${
     nums.length === 1 ? 'tu número juegue' : 'tus números jueguen'
   }. ¡Mucha suerte!`
   return `https://wa.me/${full}?text=${encodeURIComponent(text)}`
