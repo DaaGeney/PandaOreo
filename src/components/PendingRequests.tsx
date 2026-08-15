@@ -51,14 +51,19 @@ export default function PendingRequests({ requests, onApprove, onReject }: Props
         {groups.length} persona{groups.length === 1 ? '' : 's'}
       </div>
 
-      <div className="divide-y divide-tangerine/40">
+      {/* Una tarjeta por persona. En pantalla ancha se reparten en varias
+          columnas: estiradas a todo lo ancho, los botones quedaban enormes. */}
+      <div className="grid gap-2 p-2 sm:gap-3 sm:p-3 sm:grid-cols-2 xl:grid-cols-3">
         {groups.map((g) => {
           const nums = g.requests.map((r) => r.number).sort((a, b) => a - b)
           const latest = g.requests.reduce((a, b) =>
             a.created_at > b.created_at ? a : b
           )
           return (
-            <div key={g.key} className="px-3 py-3">
+            <div
+              key={g.key}
+              className="rounded-lg border border-tangerine/40 bg-cream/70 px-3 py-3"
+            >
               <div className="flex items-center gap-2 mb-1.5">
                 <span className="min-w-0 flex-1 font-bold text-ink truncate">
                   {g.name}
