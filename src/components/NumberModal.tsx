@@ -423,27 +423,16 @@ function PaidAmount({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-1.5 mt-2">
-        {[1000, 5000, 10000, 20000].map((v) => (
-          <button
-            key={v}
-            type="button"
-            onClick={() => onChange(String(Number(digits || 0) + v))}
-            className="rounded-full border border-plum/25 px-2.5 py-0.5 text-xs font-bold text-plum hover:bg-blush/15 hover:border-blush"
-          >
-            +{formatThousands(String(v))}
-          </button>
-        ))}
-        {Number(digits || 0) !== exact && (
-          <button
-            type="button"
-            onClick={() => onChange(String(exact))}
-            className="rounded-full px-2.5 py-0.5 text-xs font-bold text-plum-light hover:text-plum"
-          >
-            Exacto
-          </button>
-        )}
-      </div>
+      {/* Solo el atajo para volver a lo que cuesta: los montos se escriben. */}
+      {Number(digits || 0) !== exact && (
+        <button
+          type="button"
+          onClick={() => onChange(String(exact))}
+          className="mt-2 rounded-full px-2.5 py-0.5 text-xs font-bold text-plum-light hover:text-plum"
+        >
+          Volver a {formatCOP(exact)}
+        </button>
+      )}
 
       {extra > 0 && (
         <p className="text-xs font-semibold text-blush mt-2">
