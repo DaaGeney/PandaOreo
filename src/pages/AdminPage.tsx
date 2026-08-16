@@ -217,9 +217,22 @@ export default function AdminPage() {
     setDonations(await fetchDonations().catch(() => donations))
   }
 
-  const save = async (updated: RaffleNumber, extra = 0) => {
+  const save = async (updated: RaffleNumber, extra = 0, alsoPaid: number[] = []) => {
     await updateNumber(updated)
-    setNumbers((prev) => prev.map((n) => (n.number === updated.number ? updated : n)))
+
+    // Los demás números que pagó de una: solo cambian de estado, sus datos
+    // (nombre, teléfono, quién los vendió) quedan como están.
+    const companions = numbers
+      .filter((n) => alsoPaid.includes(n.number))
+      .map((n) => ({ ...n, status: 'paid' as const }))
+    for (const c of companions) await updateNumber(c)
+
+    setNumbers((prev) =>
+      prev.map((n) => {
+        if (n.number === updated.number) return updated
+        return companions.find((c) => c.number === n.number) ?? n
+      })
+    )
 
     // Lo que pagó de más queda como aporte ligado a ese número. Va después de
     // guardar el número: si falla, se avisa que el número sí quedó guardado.
@@ -306,6 +319,18 @@ export default function AdminPage() {
   }
 
   const selectedEntry = selected !== null ? numbers.find((n) => n.number === selected) : undefined
+
+  // Lo que la misma persona todavía debe, para poder cobrarlo todo de una.
+  // Se agrupa por nombre sin tildes, igual que en el resto de la app.
+  const pendingSiblings = selectedEntry?.buyer_name
+    ? numbers.filter(
+        (n) =>
+          n.number !== selectedEntry.number &&
+          n.status === 'reserved' &&
+          n.buyer_name &&
+          normalize(n.buyer_name) === normalize(selectedEntry.buyer_name!)
+      )
+    : []
 
   return (
     <div className="max-w-2xl lg:max-w-6xl xl:max-w-[88rem] mx-auto px-3 sm:px-4 py-4 sm:py-6">
@@ -465,6 +490,7 @@ export default function AdminPage() {
       {selectedEntry && (
         <NumberModal
           entry={selectedEntry}
+          pendingSiblings={pendingSiblings}
           onSave={save}
           onClose={() => setSelected(null)}
           buyerOptions={buyerOptions}

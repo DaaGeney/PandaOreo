@@ -13,11 +13,16 @@ import WhatsAppIcon from './WhatsAppIcon'
 
 interface Props {
   entry: RaffleNumber
-  /** `extra` es lo que pagó de más: se registra como aporte junto al número. */
-  onSave: (updated: RaffleNumber, extra?: number) => Promise<void>
+  /**
+   * @param extra Lo que pagó de más: se registra como aporte junto al número.
+   * @param alsoPaid Otros números de la misma persona que se cobran a la vez.
+   */
+  onSave: (updated: RaffleNumber, extra?: number, alsoPaid?: number[]) => Promise<void>
   onClose: () => void
   buyerOptions: Suggestion[]
   sellerOptions: Suggestion[]
+  /** Los otros números que esta misma persona todavía debe. */
+  pendingSiblings?: RaffleNumber[]
 }
 
 export default function NumberModal({
@@ -26,6 +31,7 @@ export default function NumberModal({
   onClose,
   buyerOptions,
   sellerOptions,
+  pendingSiblings = [],
 }: Props) {
   const [name, setName] = useState(entry.buyer_name ?? '')
   const [phone, setPhone] = useState(entry.buyer_phone ?? '')
@@ -36,18 +42,44 @@ export default function NumberModal({
   // Un número ya vendido se abre bloqueado: hay que tocar «Editar» para cambiarlo
   const [editing, setEditing] = useState(entry.status === 'available')
 
-  // Cuánto entregó. Arranca en el precio del número: si se deja así no pasa
-  // nada raro, y si pone de más la diferencia se guarda como aporte.
+  // Cuando alguien paga varios números juntos se cobran de una, sin abrir uno
+  // por uno. Empieza vacío: quien paga solo este no tiene que tocar nada.
+  const [alsoPaid, setAlsoPaid] = useState<Set<number>>(new Set())
+  const paidCount = 1 + alsoPaid.size
+  const dueTotal = paidCount * TICKET_PRICE
+
+  // Cuánto entregó. Arranca en el precio de lo que se está cobrando: si se deja
+  // así no pasa nada raro, y si pone de más la diferencia se guarda como aporte.
   const [paidDigits, setPaidDigits] = useState(String(TICKET_PRICE))
   const handed = Number(paidDigits || 0)
-  const extra = Math.max(0, handed - TICKET_PRICE)
-  const missing = Math.max(0, TICKET_PRICE - handed)
+  const extra = Math.max(0, handed - dueTotal)
+  const missing = Math.max(0, dueTotal - handed)
+
+  /** Al marcar o desmarcar un número, el monto vuelve a lo que suman todos. */
+  const toggleSibling = (number: number) => {
+    const next = new Set(alsoPaid)
+    if (!next.delete(number)) next.add(number)
+    setAlsoPaid(next)
+    setPaidDigits(String((1 + next.size) * TICKET_PRICE))
+  }
+
+  const toggleAllSiblings = () => {
+    const next =
+      alsoPaid.size === pendingSiblings.length
+        ? new Set<number>()
+        : new Set(pendingSiblings.map((s) => s.number))
+    setAlsoPaid(next)
+    setPaidDigits(String((1 + next.size) * TICKET_PRICE))
+  }
+
+  // El mensaje de WhatsApp nombra todos los números que se están cobrando
+  const messageNumbers = [entry.number, ...alsoPaid].sort((a, b) => a - b)
 
   // A quien ya pagó se le agradece; a quien debe se le manda la llave para cobrar
   const whatsapp = entry.buyer_phone
     ? (entry.status === 'paid' ? paidLink : whatsappLink)(
         entry.buyer_phone,
-        [entry.number],
+        messageNumbers,
         entry.buyer_name ?? ''
       )
     : null
@@ -74,8 +106,9 @@ export default function NumberModal({
           sold_by: status === 'available' ? null : soldBy.trim() || null,
           status,
         },
-        // El excedente solo cuenta cuando de verdad se está cobrando
-        status === 'paid' ? extra : 0
+        // El excedente y los acompañantes solo cuentan cuando se está cobrando
+        status === 'paid' ? extra : 0,
+        status === 'paid' ? [...alsoPaid] : []
       )
       onClose()
     } catch (e) {
@@ -112,10 +145,21 @@ export default function NumberModal({
 
             {entry.status === 'reserved' && (
               <>
+                {pendingSiblings.length > 0 && (
+                  <SiblingPicker
+                    siblings={pendingSiblings}
+                    selected={alsoPaid}
+                    onToggle={toggleSibling}
+                    onToggleAll={toggleAllSiblings}
+                    current={entry.number}
+                  />
+                )}
+
                 <PaidAmount
-                  label="¿Cuánto pagó?"
+                  label={paidCount > 1 ? `¿Cuánto pagó por los ${paidCount}?` : '¿Cuánto pagó?'}
                   digits={paidDigits}
                   onChange={setPaidDigits}
+                  exact={dueTotal}
                   extra={extra}
                   missing={missing}
                   who={entry.buyer_name ?? ''}
@@ -126,7 +170,11 @@ export default function NumberModal({
                   onClick={() => save('paid')}
                   className="w-full rounded-lg bg-plum text-cream font-bold py-2.5 mb-2 hover:brightness-110 disabled:opacity-50"
                 >
-                  {saving ? 'Guardando…' : `💰 Marcar pagado${extra > 0 ? ' + aporte' : ''}`}
+                  {saving
+                    ? 'Guardando…'
+                    : `💰 ${
+                        paidCount > 1 ? `Cobrar los ${paidCount} números` : 'Marcar pagado'
+                      }${extra > 0 ? ' + aporte' : ''}`}
                 </button>
               </>
             )}
@@ -219,6 +267,7 @@ export default function NumberModal({
           label="¿Cuánto pagó? (al marcar pagado)"
           digits={paidDigits}
           onChange={setPaidDigits}
+          exact={dueTotal}
           extra={extra}
           missing={missing}
           who={name.trim()}
@@ -267,6 +316,75 @@ export default function NumberModal({
 }
 
 /**
+ * Los demás números que la misma persona debe. Marcarlos aquí evita tener que
+ * abrir uno por uno cuando paga varios juntos, que es lo normal.
+ */
+function SiblingPicker({
+  siblings,
+  selected,
+  onToggle,
+  onToggleAll,
+  current,
+}: {
+  siblings: RaffleNumber[]
+  selected: Set<number>
+  onToggle: (n: number) => void
+  onToggleAll: () => void
+  current: number
+}) {
+  const all = selected.size === siblings.length
+
+  return (
+    <div className="bg-white rounded-xl border border-plum/15 px-3 py-2.5 mb-2">
+      <div className="flex items-baseline justify-between gap-2">
+        {/* Sin repetir el nombre: está en la ficha, justo encima */}
+        <span className="min-w-0 text-sm font-semibold text-plum">
+          También debe {siblings.length} número{siblings.length === 1 ? '' : 's'}
+        </span>
+        <button
+          type="button"
+          onClick={onToggleAll}
+          className="shrink-0 text-xs font-bold text-plum-light hover:text-plum"
+        >
+          {all ? 'Ninguno' : 'Todos'}
+        </button>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5 mt-2">
+        {/* El número abierto siempre va incluido: se muestra fijo, sin poder quitarlo */}
+        <span className="rounded-md bg-plum text-cream px-2 py-1 text-sm font-bold opacity-60">
+          {pad2(current)}
+        </span>
+        {siblings.map((s) => {
+          const on = selected.has(s.number)
+          return (
+            <button
+              key={s.number}
+              type="button"
+              onClick={() => onToggle(s.number)}
+              aria-pressed={on}
+              className={`rounded-md px-2 py-1 text-sm font-bold border transition ${
+                on
+                  ? 'bg-plum text-cream border-plum'
+                  : 'bg-tangerine/20 text-plum-dark border-tangerine/60 hover:bg-tangerine/35'
+              }`}
+            >
+              {pad2(s.number)}
+            </button>
+          )
+        })}
+      </div>
+
+      <p className="text-xs text-plum-light mt-2">
+        {selected.size === 0
+          ? 'Toca los que también te pagó.'
+          : `Se cobran ${1 + selected.size} números juntos.`}
+      </p>
+    </div>
+  )
+}
+
+/**
  * Cuánto entregó la persona. Viene con el precio puesto para que el caso
  * normal sea un solo toque; si entrega de más, la diferencia se avisa aquí
  * y se guarda sola como aporte.
@@ -275,6 +393,7 @@ function PaidAmount({
   label,
   digits,
   onChange,
+  exact,
   extra,
   missing,
   who,
@@ -282,6 +401,8 @@ function PaidAmount({
   label: string
   digits: string
   onChange: (v: string) => void
+  /** Lo que costaría justo: a esto vuelve el botón «Exacto». */
+  exact: number
   extra: number
   missing: number
   who: string
@@ -313,10 +434,10 @@ function PaidAmount({
             +{formatThousands(String(v))}
           </button>
         ))}
-        {Number(digits || 0) !== TICKET_PRICE && (
+        {Number(digits || 0) !== exact && (
           <button
             type="button"
-            onClick={() => onChange(String(TICKET_PRICE))}
+            onClick={() => onChange(String(exact))}
             className="rounded-full px-2.5 py-0.5 text-xs font-bold text-plum-light hover:text-plum"
           >
             Exacto
@@ -332,7 +453,7 @@ function PaidAmount({
       )}
       {missing > 0 && (
         <p className="text-xs font-semibold text-tangerine mt-2">
-          Faltan {formatCOP(missing)} para el precio del número. Se marcará pagado igual.
+          Faltan {formatCOP(missing)} para completar. Se marcará pagado igual.
         </p>
       )}
     </div>
