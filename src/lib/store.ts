@@ -29,6 +29,14 @@ export interface HistoryEntry {
   changed_at: string
 }
 
+/**
+ * Supabase devuelve objetos planos, no Error: al lanzarlos tal cual, quien los
+ * atrapa se queda sin el mensaje y solo puede mostrar un texto genérico.
+ */
+function asError(error: { message?: string }, fallback: string): Error {
+  return new Error(error.message || fallback)
+}
+
 const emptyBoard = (): RaffleNumber[] =>
   Array.from({ length: 100 }, (_, i) => ({
     number: i,
@@ -61,7 +69,7 @@ export async function fetchNumbers(): Promise<RaffleNumber[]> {
     .from('raffle_numbers')
     .select('number, buyer_name, buyer_phone, sold_by, status')
     .order('number')
-  if (error) throw error
+  if (error) throw asError(error, 'No se pudo cargar el tablero.')
   return data as RaffleNumber[]
 }
 
@@ -83,7 +91,7 @@ export async function fetchPublicBoard(): Promise<BoardCell[]> {
     .from('public_board')
     .select('number, status')
     .order('number')
-  if (error) throw error
+  if (error) throw asError(error, 'No se pudo cargar el tablero.')
   return data as BoardCell[]
 }
 
@@ -106,7 +114,7 @@ export async function updateNumber(entry: RaffleNumber): Promise<void> {
       updated_at: new Date().toISOString(),
     })
     .eq('number', entry.number)
-  if (error) throw error
+  if (error) throw asError(error, 'No se pudo guardar el número.')
 }
 
 function logDemoHistory(prev: RaffleNumber, next: RaffleNumber) {
@@ -148,7 +156,7 @@ export async function fetchHistory(): Promise<HistoryEntry[]> {
     .select('id, number, old_status, new_status, old_buyer, new_buyer, changed_at')
     .order('changed_at', { ascending: false })
     .limit(300)
-  if (error) throw error
+  if (error) throw asError(error, 'No se pudo cargar el historial.')
   return data as HistoryEntry[]
 }
 
@@ -206,7 +214,7 @@ export async function fetchPendingRequests(): Promise<NumberRequest[]> {
     .select('id, number, name, phone, created_at')
     .eq('status', 'pending')
     .order('created_at', { ascending: false })
-  if (error) throw error
+  if (error) throw asError(error, 'No se pudieron cargar las solicitudes.')
   return data as NumberRequest[]
 }
 
@@ -236,7 +244,7 @@ async function closeRequest(id: number, status: 'approved' | 'rejected') {
     .from('number_requests')
     .update({ status })
     .eq('id', id)
-  if (error) throw error
+  if (error) throw asError(error, 'No se pudo cerrar la solicitud.')
 }
 
 // ---------- Aportes: donaciones y pagos extra ----------

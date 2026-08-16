@@ -128,6 +128,26 @@ export const formatCOP = (value: number) =>
 
 export const pad2 = (n: number) => n.toString().padStart(2, '0')
 
+/**
+ * Los fallos de red salen en inglés y desde el navegador ("Failed to fetch",
+ * "Load failed"…). En celular pasan seguido, así que se traducen.
+ */
+export function readableError(error: unknown, fallback: string): string {
+  // Supabase devuelve objetos planos, no Error: sin esto el mensaje se pierde
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === 'object' && error && 'message' in error
+        ? String((error as { message: unknown }).message)
+        : ''
+  if (!message) return fallback
+  return /failed to fetch|load failed|networkerror|network request failed|fetch failed/i.test(
+    message
+  )
+    ? 'No se pudo conectar. Revisa tu internet e inténtalo de nuevo.'
+    : message
+}
+
 /** Separa los miles mientras se escribe un monto: "20000" → "20.000". */
 export const formatThousands = (digits: string) =>
   digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.')

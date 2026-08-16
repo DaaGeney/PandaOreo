@@ -16,7 +16,7 @@ import {
 } from '../lib/store'
 import { shareCardPng } from '../lib/exportImage'
 import type { RaffleNumber, NumberRequest, Donation, DonationInput } from '../lib/types'
-import { normalize, sumDonations, formatCOP } from '../lib/types'
+import { normalize, sumDonations, formatCOP, readableError } from '../lib/types'
 import { findPeople, hitNumbers, didYouMean } from '../lib/search'
 import NumberGrid from '../components/NumberGrid'
 import NumberModal from '../components/NumberModal'
@@ -79,7 +79,7 @@ export default function AdminPage() {
       setDonations(contributions)
       setLoadError(null)
     } catch (e) {
-      setLoadError(e instanceof Error ? e.message : 'Error cargando los números')
+      setLoadError(readableError(e, 'No se pudo cargar el tablero.'))
     }
   }, [])
 
@@ -356,11 +356,18 @@ export default function AdminPage() {
         </div>
       )}
 
-      {loadError && (
-        <div className="bg-red-100 border border-red-300 rounded-xl px-3 py-2 text-sm text-red-800 mb-4">
-          {loadError}
-        </div>
-      )}
+      {/* Con el tablero ya en pantalla, un refresco fallido es un aviso: lo que
+          se ve sigue siendo válido. Solo alarma si no se pudo cargar nada. */}
+      {loadError &&
+        (numbers.length > 0 ? (
+          <div className="bg-tangerine/15 border border-tangerine/50 rounded-xl px-3 py-2 text-sm text-plum-dark mb-4">
+            No se pudo actualizar: {loadError} Se ven los últimos datos cargados.
+          </div>
+        ) : (
+          <div className="bg-red-100 border border-red-300 rounded-xl px-3 py-2 text-sm text-red-800 mb-4">
+            {loadError}
+          </div>
+        ))}
 
       {/* Lo urgente va arriba y a todo lo ancho, antes de repartir las columnas */}
       <PendingRequests

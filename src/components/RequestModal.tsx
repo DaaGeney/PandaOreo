@@ -6,6 +6,7 @@ import {
   TICKET_PRICE,
   CONTACT_NAME,
   CONTACT_PHONE,
+  readableError,
 } from '../lib/types'
 
 interface Props {
@@ -36,6 +37,8 @@ export default function RequestModal({ numbers, onClose, onDone }: Props) {
     const ok: number[] = []
     const taken: number[] = []
     let notReady = false
+    let failure: string | null = null
+
     for (const n of numbers) {
       try {
         await requestNumber(n, name, phone)
@@ -47,7 +50,16 @@ export default function RequestModal({ numbers, onClose, onDone }: Props) {
           notReady = true
           break
         }
-        taken.push(n)
+        // Solo estos dos mensajes vienen de la base y significan «ya no está
+        // libre». Cualquier otro fallo (sin señal, servidor caído) NO se puede
+        // hacer pasar por número tomado: mandaba a la gente a elegir otro
+        // número cuando el suyo seguía disponible.
+        if (/ya está vendido|ya tiene una solicitud/i.test(msg)) {
+          taken.push(n)
+        } else {
+          failure = readableError(err, 'No se pudo enviar la solicitud.')
+          break
+        }
       }
     }
 
@@ -56,6 +68,12 @@ export default function RequestModal({ numbers, onClose, onDone }: Props) {
         `Las solicitudes en línea aún no están activas. Escríbele a ${CONTACT_NAME} al WhatsApp ${CONTACT_PHONE} para apartar tus números.`
       )
       setSending(false)
+      return
+    }
+    if (failure) {
+      setError(`${failure} Tu número sigue disponible, vuelve a intentarlo.`)
+      setSending(false)
+      onDone()
       return
     }
     if (ok.length === 0) {
