@@ -477,6 +477,8 @@ export default function AdminPage() {
       {showHistory && (
         <HistoryModal
           entries={history}
+          numbers={numbers}
+          onSelectNumber={setSelected}
           loading={historyLoading}
           error={historyError}
           onClose={closeHistory}
