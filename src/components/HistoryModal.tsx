@@ -140,13 +140,13 @@ export default function HistoryModal({
       <div
         role="dialog"
         aria-modal="true"
-        aria-labelledby="historial-titulo"
+        aria-labelledby="estado-titulo"
         className="bg-cream w-full h-svh sm:h-auto sm:max-h-[85vh] sm:max-w-md sm:rounded-2xl sm:shadow-xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-plum/15">
-          <h2 id="historial-titulo" className="text-lg font-black text-plum">
-            Estado y movimientos
+          <h2 id="estado-titulo" className="text-lg font-black text-plum">
+            Estado
           </h2>
           <button
             type="button"

@@ -435,7 +435,7 @@ export default function AdminPage() {
             aria-haspopup="dialog"
             className="col-span-2 sm:col-auto whitespace-nowrap border border-plum/30 text-plum font-semibold rounded-xl px-4 py-2 hover:bg-white"
           >
-            🕘 Movimientos
+            📋 Estado
           </button>
         </div>
       </div>
