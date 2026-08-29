@@ -61,8 +61,16 @@ export function findPeople(
   }
 
   for (const n of numbers) {
-    if (matches(n.buyer_name, query)) hit(n.buyer_name!, n.buyer_phone).owned.push(n)
-    if (matches(n.sold_by, query)) hit(n.sold_by!, null).soldByThem.push(n)
+    const esSuyo = matches(n.buyer_name, query)
+    if (esSuyo) hit(n.buyer_name!, n.buyer_phone).owned.push(n)
+
+    if (matches(n.sold_by, query)) {
+      // Quien se vende un número a sí mismo no lo tiene dos veces: sin esto el
+      // mismo número salía en «Sus números» y en «Vendió», y parecían dos.
+      const seLoVendioASiMismo =
+        esSuyo && normalize(n.sold_by!) === normalize(n.buyer_name ?? '')
+      if (!seLoVendioASiMismo) hit(n.sold_by!, null).soldByThem.push(n)
+    }
   }
   for (const d of donations) {
     if (matches(d.name, query)) hit(d.name, d.phone).donations.push(d)
