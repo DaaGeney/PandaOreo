@@ -173,7 +173,9 @@ export default function NumberModal({
                   {saving
                     ? 'Guardando…'
                     : `💰 ${
-                        paidCount > 1 ? `Cobrar los ${paidCount} números` : 'Marcar pagado'
+                        paidCount > 1
+                          ? `Marcar los ${paidCount} como pagados`
+                          : 'Marcar como pagado'
                       }${extra > 0 ? ' + aporte' : ''}`}
                 </button>
               </>
@@ -263,51 +265,93 @@ export default function NumberModal({
           </p>
         )}
 
-        <PaidAmount
-          label="¿Cuánto pagó? (al marcar pagado)"
-          digits={paidDigits}
-          onChange={setPaidDigits}
-          exact={dueTotal}
-          extra={extra}
-          missing={missing}
-          who={name.trim()}
-        />
+        {entry.status !== 'paid' && (
+          <PaidAmount
+            label="¿Cuánto pagó?"
+            digits={paidDigits}
+            onChange={setPaidDigits}
+            exact={dueTotal}
+            extra={extra}
+            missing={missing}
+            who={name.trim()}
+          />
+        )}
 
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            disabled={saving}
-            onClick={() => save('reserved')}
-            className="rounded-lg bg-tangerine text-plum-dark font-bold py-2.5 hover:brightness-105 disabled:opacity-50"
-          >
-            Apartar
-          </button>
-          <button
-            type="button"
-            disabled={saving}
-            onClick={() => save('paid')}
-            className="rounded-lg bg-plum text-cream font-bold py-2.5 hover:brightness-110 disabled:opacity-50"
-          >
-            Marcar pagado
-          </button>
-        </div>
-        <div className="grid grid-cols-2 gap-2 mt-2">
-          <button
-            type="button"
-            disabled={saving || entry.status === 'available'}
-            onClick={() => save('available')}
-            className="rounded-lg border border-plum/30 text-plum font-semibold py-2 hover:bg-white disabled:opacity-40"
-          >
-            Liberar
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg border border-plum/30 text-plum font-semibold py-2 hover:bg-white"
-          >
-            Cancelar
-          </button>
-        </div>
+        {entry.status === 'available' ? (
+          // Venta nueva: hay que decir en qué estado queda
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => save('reserved')}
+              className="rounded-lg bg-tangerine text-plum-dark font-bold py-2.5 hover:brightness-105 disabled:opacity-50"
+            >
+              Apartar
+            </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => save('paid')}
+              className="rounded-lg bg-plum text-cream font-bold py-2.5 hover:brightness-110 disabled:opacity-50"
+            >
+              Marcar como pagado
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Ya está vendido: lo normal aquí es corregir un dato, no cambiarle
+                el estado. Guardar deja el número como está. */}
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => save(entry.status)}
+              className="w-full rounded-lg bg-plum text-cream font-bold py-2.5 hover:brightness-110 disabled:opacity-50"
+            >
+              {saving ? 'Guardando…' : '💾 Guardar cambios'}
+            </button>
+
+            <p className="text-xs font-semibold text-plum-light mt-3 mb-1.5">
+              O cambiarle el estado:
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {entry.status === 'paid' ? (
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => save('reserved')}
+                  className="rounded-lg bg-tangerine text-plum-dark font-bold py-2 text-sm hover:brightness-105 disabled:opacity-50"
+                >
+                  Volver a apartado
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => save('paid')}
+                  className="rounded-lg bg-plum text-cream font-bold py-2 text-sm hover:brightness-110 disabled:opacity-50"
+                >
+                  Marcar como pagado
+                </button>
+              )}
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => save('available')}
+                className="rounded-lg border border-plum/30 text-plum font-semibold py-2 text-sm hover:bg-white disabled:opacity-50"
+              >
+                Liberar
+              </button>
+            </div>
+          </>
+        )}
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full mt-2 rounded-lg border border-plum/30 text-plum font-semibold py-2 hover:bg-white"
+        >
+          Cancelar
+        </button>
           </>
         )}
       </div>
