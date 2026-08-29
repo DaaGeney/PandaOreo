@@ -1,7 +1,14 @@
 import { useMemo, useState } from 'react'
 import type { HistoryEntry } from '../lib/store'
 import type { RaffleNumber } from '../lib/types'
-import { pad2, formatDateTime, normalize, formatCOP, TICKET_PRICE } from '../lib/types'
+import {
+  pad2,
+  formatDateTime,
+  normalize,
+  formatCOP,
+  otherSeller,
+  TICKET_PRICE,
+} from '../lib/types'
 
 type Kind = 'paid' | 'reserved' | 'released' | 'edit'
 
@@ -278,7 +285,7 @@ export default function HistoryModal({
                         <span className="block truncate font-semibold text-ink">
                           {n.buyer_name ?? 'Sin nombre'}
                         </span>
-                        {n.sold_by && (
+                        {otherSeller(n.buyer_name, n.sold_by) && (
                           <span className="block truncate text-xs text-plum-light">
                             vende {n.sold_by}
                           </span>

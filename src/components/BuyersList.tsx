@@ -1,5 +1,5 @@
 import type { RaffleNumber } from '../lib/types'
-import { pad2 } from '../lib/types'
+import { pad2, otherSeller } from '../lib/types'
 
 interface Props {
   numbers: RaffleNumber[]
@@ -48,7 +48,7 @@ export default function BuyersList({ numbers, onSelect, highlight }: Props) {
                   <span className="block truncate font-semibold text-ink text-sm">
                     {n.buyer_name}
                   </span>
-                  {n.sold_by && (
+                  {otherSeller(n.buyer_name, n.sold_by) && (
                     <span className="block truncate text-xs text-plum-light">
                       vende {n.sold_by}
                     </span>

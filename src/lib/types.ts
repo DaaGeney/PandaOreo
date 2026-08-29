@@ -170,6 +170,13 @@ export const formatDate = (iso: string) =>
     .toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
     .replace(' de ', ' ')
 
+/**
+ * ¿Vale la pena decir quién vendió el número? Si se lo vendió a sí mismo, no:
+ * repetir su nombre debajo de su nombre solo confunde.
+ */
+export const otherSeller = (buyer: string | null, seller: string | null) =>
+  seller?.trim() && normalize(seller) !== normalize(buyer ?? '') ? seller : null
+
 /** Minúsculas sin tildes, para buscar y deduplicar: "Sofía" coincide con "sofia". */
 export const normalize = (s: string) =>
   s
