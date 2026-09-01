@@ -183,7 +183,7 @@ export async function requestNumber(
   phone: string
 ): Promise<void> {
   if (isDemo) {
-    // Mismo bloqueo que aplica la base en producción (ver request_number)
+    // Mismo bloqueo que revisa RequestModal antes de enviar
     if (localStorage.getItem(DEMO_CLOSED_KEY) === 'true')
       throw new Error('Las ventas ya están cerradas')
     const board = loadDemo()

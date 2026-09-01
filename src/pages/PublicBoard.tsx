@@ -65,12 +65,11 @@ export default function PublicBoard() {
     }
   }
 
-  // Al cerrarse las ventas, lo que ya estaba marcado deja de tener sentido
+  // Al cerrarse las ventas, lo que ya estaba marcado deja de tener sentido.
+  // El formulario abierto NO se cierra a la fuerza: si alguien alcanzó a
+  // abrirlo, es él quien le explica que ya no se puede y por qué.
   useEffect(() => {
-    if (closed) {
-      setSelected(new Set())
-      setRequesting(null)
-    }
+    if (closed) setSelected(new Set())
   }, [closed])
 
   useEffect(() => {

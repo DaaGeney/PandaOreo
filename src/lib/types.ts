@@ -110,22 +110,16 @@ export function paidLink(phone: string, numbers: number[], name: string) {
  */
 export function reminderLink(phone: string, numbers: number[], name: string) {
   const one = numbers.length === 1
-  const total = numbers.length * TICKET_PRICE
   const text = [
-    `Hola ${name},`,
-    '',
-    `Te escribo para recordarte que ${
+    `Hola ${name}, Te escribo para recordarte que ${
       one ? 'tienes apartado el número' : 'tienes apartados los números'
-    } ${bold(listNumbers(numbers))} de la Rifa Solidaria que organizo para ayudarme con los gastos de mis gatitos.`,
-    '',
-    one
-      ? `Serían ${bold(formatCOP(total))}.`
-      : `Serían ${bold(formatCOP(total))} por ${numbers.length} números.`,
-    `Puedes pagar con mi llave Bre-B: ${bold(BREB_KEY)}`,
-    '',
-    `Jugamos este ${bold(DRAW_DAY)} con la Lotería de Medellín a las ${bold(
-      '11:00 p. m.'
+    } ${bold(
+      listNumbers(numbers)
+    )} de la Rifa Solidaria que organizo para ayudarme con los gastos veterinarios de mis gatitos, la rifa juega este ${bold(
+      DRAW_DAY
     )}`,
+    '',
+    `Puedes pagar con mi llave Bre-B: ${bold(BREB_KEY)}`,
     '',
     '¡Gracias por la colaboración y mucha suerte!',
   ].join('\n')
@@ -144,7 +138,7 @@ export const TICKET_PRICE = 20000
 export const PRIZE = 1000000
 export const RAFFLE_TITLE = 'Rifa Solidaria Oreo y Panda'
 /** El día del sorteo, para escribirlo dentro de una frase. */
-export const DRAW_DAY = 'viernes 4 de septiembre'
+export const DRAW_DAY = 'viernes 04 de septiembre'
 export const DRAW_DATE = 'Viernes 4 de septiembre · Lotería de Medellín · 11:00 p.m.'
 export const CONTACT_PHONE = '3008827856'
 export const CONTACT_NAME = 'Diego Assia'
