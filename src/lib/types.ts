@@ -68,6 +68,12 @@ function waLink(phone: string, text: string) {
   return `https://wa.me/${full}?text=${encodeURIComponent(text)}`
 }
 
+/**
+ * Solo el primer nombre para saludar: "María Restrepo" queda en "María".
+ * Saludar con el nombre completo suena a mensaje de banco, no a conocido.
+ */
+export const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? ''
+
 /** "07", o "03, 12 y 44" cuando son varios. */
 const listNumbers = (numbers: number[]) => {
   const nums = numbers.map(pad2)
@@ -77,7 +83,7 @@ const listNumbers = (numbers: number[]) => {
 /** Confirmación con la llave para cobrar: para números apartados, que aún deben. */
 export function whatsappLink(phone: string, numbers: number[], name: string) {
   const one = numbers.length === 1
-  const text = `Hola ${name}, te confirmo ${one ? 'tu número' : 'tus números'} ${bold(
+  const text = `Hola ${firstName(name)}, te confirmo ${one ? 'tu número' : 'tus números'} ${bold(
     listNumbers(numbers)
   )} en la ${RAFFLE_TITLE}. ¡Gracias por la colaboración! Esta es mi llave Bre-B: ${bold(
     BREB_KEY
@@ -93,7 +99,7 @@ export function whatsappLink(phone: string, numbers: number[], name: string) {
  */
 export function paidLink(phone: string, numbers: number[], name: string) {
   const one = numbers.length === 1
-  const text = `Hola ${name}, ya recibí tu pago. ${
+  const text = `Hola ${firstName(name)}, ya recibí tu pago. ${
     one ? 'Tu número' : 'Tus números'
   } ${bold(listNumbers(numbers))} ${
     one ? 'queda confirmado' : 'quedan confirmados'
@@ -108,10 +114,10 @@ export function paidLink(phone: string, numbers: number[], name: string) {
  * (qué números, cuánto, cómo pagar y cuándo juega) y en un solo párrafo se
  * vuelven un ladrillo que nadie lee. WhatsApp respeta los saltos de línea.
  */
-export function reminderLink(phone: string, numbers: number[], name: string) {
+export function reminderText(numbers: number[], name: string) {
   const one = numbers.length === 1
-  const text = [
-    `Hola ${name}, Te escribo para recordarte que ${
+  return [
+    `Hola ${firstName(name)}, Te escribo para recordarte que ${
       one ? 'tienes apartado el número' : 'tienes apartados los números'
     } ${bold(
       listNumbers(numbers)
@@ -123,12 +129,14 @@ export function reminderLink(phone: string, numbers: number[], name: string) {
     '',
     '¡Gracias por la colaboración y mucha suerte!',
   ].join('\n')
-  return waLink(phone, text)
 }
+
+export const reminderLink = (phone: string, numbers: number[], name: string) =>
+  waLink(phone, reminderText(numbers, name))
 
 /** Link de WhatsApp para agradecer un aporte o una donación. */
 export function thanksLink(phone: string, name: string, amount: number) {
-  const text = `Hola ${name}, mil gracias por tu aporte de ${bold(
+  const text = `Hola ${firstName(name)}, mil gracias por tu aporte de ${bold(
     formatCOP(amount)
   )} a la ${RAFFLE_TITLE}. De corazon, gracias por ayudarnos a seguir a su lado.`
   return waLink(phone, text)

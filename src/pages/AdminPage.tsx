@@ -28,7 +28,6 @@ import BuyersList from '../components/BuyersList'
 import PendingRequests from '../components/PendingRequests'
 import SearchResults from '../components/SearchResults'
 import DonationsPanel from '../components/DonationsPanel'
-import DebtorsPanel from '../components/DebtorsPanel'
 import SalesLock from '../components/SalesLock'
 import DonationModal from '../components/DonationModal'
 import HistoryModal from '../components/HistoryModal'
@@ -484,8 +483,6 @@ export default function AdminPage() {
 
         <aside className="flex flex-col gap-4 lg:col-start-2 lg:row-start-2 xl:col-start-3 xl:row-start-1">
           <SalesLock closed={closed} onChange={toggleSales} />
-
-          <DebtorsPanel numbers={numbers} onSelect={setSelected} />
 
           <DonationsPanel
             donations={donations}
