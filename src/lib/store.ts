@@ -12,6 +12,7 @@ const DEMO_KEY = 'rifa-demo-numbers'
 const DEMO_HISTORY_KEY = 'rifa-demo-history'
 const DEMO_REQUESTS_KEY = 'rifa-demo-requests'
 const DEMO_DONATIONS_KEY = 'rifa-demo-donations'
+const DEMO_CLOSED_KEY = 'rifa-demo-cerrado'
 
 // Date.now() se repite si ocurren varios registros en el mismo milisegundo,
 // y los ids duplicados rompen el renderizado de las listas. El sufijo los
@@ -182,6 +183,9 @@ export async function requestNumber(
   phone: string
 ): Promise<void> {
   if (isDemo) {
+    // Mismo bloqueo que aplica la base en producción (ver request_number)
+    if (localStorage.getItem(DEMO_CLOSED_KEY) === 'true')
+      throw new Error('Las ventas ya están cerradas')
     const board = loadDemo()
     if (board[number].status !== 'available') throw new Error('Ese número ya está vendido')
     const reqs = loadDemoRequests()
@@ -245,6 +249,40 @@ async function closeRequest(id: number, status: 'approved' | 'rejected') {
     .update({ status })
     .eq('id', id)
   if (error) throw asError(error, 'No se pudo cerrar la solicitud.')
+}
+
+// ---------- Cierre de ventas ----------
+
+/**
+ * ¿Se pueden seguir apartando números? Si la tabla de ajustes todavía no
+ * existe (se publicó la app antes de correr la migración), se responde que
+ * NO está cerrado: el tablero tiene que seguir funcionando igual que siempre.
+ */
+export async function fetchSalesClosed(): Promise<boolean> {
+  if (isDemo) return localStorage.getItem(DEMO_CLOSED_KEY) === 'true'
+  const { data, error } = await supabase!
+    .from('raffle_settings')
+    .select('sales_closed')
+    .eq('id', 1)
+    .maybeSingle()
+  if (error) throw asError(error, 'No se pudo leer el estado de las ventas.')
+  return data?.sales_closed ?? false
+}
+
+export async function setSalesClosed(closed: boolean): Promise<void> {
+  if (isDemo) {
+    localStorage.setItem(DEMO_CLOSED_KEY, String(closed))
+    return
+  }
+  const { error } = await supabase!
+    .from('raffle_settings')
+    .update({ sales_closed: closed, updated_at: new Date().toISOString() })
+    .eq('id', 1)
+  if (error)
+    throw asError(
+      error,
+      'No se pudo cambiar el estado de las ventas. ¿Corriste las migraciones?'
+    )
 }
 
 // ---------- Aportes: donaciones y pagos extra ----------

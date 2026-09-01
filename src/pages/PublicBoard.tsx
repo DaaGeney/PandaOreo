@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { fetchPublicBoard } from '../lib/store'
+import { fetchPublicBoard, fetchSalesClosed } from '../lib/store'
 import { shareCardPng } from '../lib/exportImage'
 import type { GridNumber } from '../components/NumberGrid'
 import NumberGrid from '../components/NumberGrid'
@@ -26,9 +26,14 @@ export default function PublicBoard() {
   // Lista congelada al abrir el formulario: la selección puede auto-limpiarse
   // cuando el tablero se refresca, pero el modal debe seguir abierto
   const [requesting, setRequesting] = useState<number[] | null>(null)
+  // Ventas cerradas por el admin: el tablero se sigue viendo, pero de solo lectura
+  const [closed, setClosed] = useState(false)
   const exportRef = useRef<HTMLDivElement>(null)
 
-  const reload = () => fetchPublicBoard().then(setNumbers).catch(() => {})
+  const reload = () => {
+    fetchPublicBoard().then(setNumbers).catch(() => {})
+    fetchSalesClosed().then(setClosed).catch(() => {})
+  }
 
   const toggle = (n: number) =>
     setSelected((prev) => {
@@ -60,8 +65,19 @@ export default function PublicBoard() {
     }
   }
 
+  // Al cerrarse las ventas, lo que ya estaba marcado deja de tener sentido
   useEffect(() => {
-    const load = () => fetchPublicBoard().then(setNumbers).catch(() => {})
+    if (closed) {
+      setSelected(new Set())
+      setRequesting(null)
+    }
+  }, [closed])
+
+  useEffect(() => {
+    const load = () => {
+      fetchPublicBoard().then(setNumbers).catch(() => {})
+      fetchSalesClosed().then(setClosed).catch(() => {})
+    }
     load()
     const interval = setInterval(load, REFRESH_MS)
     const onVisible = () => document.visibilityState === 'visible' && load()
@@ -91,12 +107,26 @@ export default function PublicBoard() {
         </p>
       </div>
 
-      <p className="text-center text-plum font-semibold mb-2">
-        👇 Toca los números libres que quieras apartar
-      </p>
+      {closed ? (
+        <div className="bg-plum text-cream rounded-2xl px-4 py-3 text-center mb-3">
+          <p className="font-black text-lg">🔒 Ventas cerradas</p>
+          <p className="text-cream/90 text-sm font-semibold mt-0.5">
+            Ya no se pueden apartar más números. ¡Mucha suerte a quienes alcanzaron!
+          </p>
+        </div>
+      ) : (
+        <p className="text-center text-plum font-semibold mb-2">
+          👇 Toca los números libres que quieras apartar
+        </p>
+      )}
 
       <div className="bg-white rounded-2xl border-2 border-plum/15 p-3 sm:p-5 shadow-sm">
-        <NumberGrid numbers={numbers} publicView onSelect={toggle} selected={selected} />
+        <NumberGrid
+          numbers={numbers}
+          publicView
+          onSelect={closed ? undefined : toggle}
+          selected={selected}
+        />
       </div>
 
       <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-sm font-semibold text-plum mt-3">
@@ -110,7 +140,7 @@ export default function PublicBoard() {
         <span className="flex items-center gap-1.5">
           <span className="w-3.5 h-3.5 rounded bg-plum" /> Vendido
         </span>
-        {numbers.length > 0 && <span>{available} disponibles</span>}
+        {numbers.length > 0 && !closed && <span>{available} disponibles</span>}
       </div>
 
       <button
@@ -126,7 +156,9 @@ export default function PublicBoard() {
       <p className="text-center text-ink font-bold mt-2">📲 {CONTACT_LABEL}</p>
       <p className="text-center text-plum font-bold mt-1">💸 {BREB_LABEL}</p>
       <p className="text-center text-blush font-semibold mt-1">
-        Escríbeme para apartar tu número · ¡Gracias por tu apoyo! ♥
+        {closed
+          ? '¡Gracias a todos por el apoyo! ♥'
+          : 'Escríbeme para apartar tu número · ¡Gracias por tu apoyo! ♥'}
       </p>
 
       {/* Barra flotante con la selección lista para enviar */}

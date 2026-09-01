@@ -101,6 +101,39 @@ export function paidLink(phone: string, numbers: number[], name: string) {
   return waLink(phone, text)
 }
 
+/**
+ * Recordatorio de cobro para quien tiene números apartados y todavía no paga.
+ *
+ * Va en varios renglones cortos a propósito: el mensaje dice cuatro cosas
+ * (qué números, cuánto, cómo pagar y cuándo juega) y en un solo párrafo se
+ * vuelven un ladrillo que nadie lee. WhatsApp respeta los saltos de línea.
+ */
+export function reminderLink(phone: string, numbers: number[], name: string) {
+  const one = numbers.length === 1
+  const total = numbers.length * TICKET_PRICE
+  const text = [
+    `Hola ${name}, ¿cómo vas?`,
+    '',
+    `Te escribo para recordarte con cariño que ${
+      one ? 'tienes apartado el número' : 'tienes apartados los números'
+    } ${bold(listNumbers(numbers))} de la ${RAFFLE_TITLE}.`,
+    '',
+    one
+      ? `Serían ${bold(formatCOP(total))}.`
+      : `Serían ${bold(formatCOP(total))} por ${numbers.length} números.`,
+    `Puedes pagar con mi llave Bre-B: ${bold(BREB_KEY)}`,
+    '',
+    `Jugamos este ${bold('viernes')} con la Lotería de Medellín a las ${bold(
+      '11:00 p. m.'
+    )}, así que apenas puedas lo dejamos listo para que ${
+      one ? 'tu número juegue' : 'tus números jueguen'
+    }.`,
+    '',
+    '¡Gracias por la colaboración y mucha suerte!',
+  ].join('\n')
+  return waLink(phone, text)
+}
+
 /** Link de WhatsApp para agradecer un aporte o una donación. */
 export function thanksLink(phone: string, name: string, amount: number) {
   const text = `Hola ${name}, mil gracias por tu aporte de ${bold(
