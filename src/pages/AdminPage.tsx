@@ -12,6 +12,8 @@ import {
   addDonation,
   updateDonation,
   deleteDonation,
+  fetchSalesClosed,
+  setSalesClosed,
   type HistoryEntry,
 } from '../lib/store'
 import { shareCardPng } from '../lib/exportImage'
@@ -26,6 +28,8 @@ import BuyersList from '../components/BuyersList'
 import PendingRequests from '../components/PendingRequests'
 import SearchResults from '../components/SearchResults'
 import DonationsPanel from '../components/DonationsPanel'
+import DebtorsPanel from '../components/DebtorsPanel'
+import SalesLock from '../components/SalesLock'
 import DonationModal from '../components/DonationModal'
 import HistoryModal from '../components/HistoryModal'
 import AutocompleteInput from '../components/AutocompleteInput'
@@ -51,6 +55,7 @@ export default function AdminPage() {
   const [donations, setDonations] = useState<Donation[]>([])
   // null = cerrado · 'new' = registrando · Donation = editando ese aporte
   const [donationForm, setDonationForm] = useState<Donation | 'new' | null>(null)
+  const [closed, setClosed] = useState(false)
   const exportRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -69,14 +74,16 @@ export default function AdminPage() {
     try {
       // Solicitudes y aportes no tumban el tablero: si su tabla aún no existe
       // en Supabase, el resto de la administración sigue funcionando.
-      const [board, pending, contributions] = await Promise.all([
+      const [board, pending, contributions, salesClosed] = await Promise.all([
         fetchNumbers(),
         fetchPendingRequests().catch(() => []),
         fetchDonations().catch(() => []),
+        fetchSalesClosed().catch(() => false),
       ])
       setNumbers(board)
       setRequests(pending)
       setDonations(contributions)
+      setClosed(salesClosed)
       setLoadError(null)
     } catch (e) {
       setLoadError(readableError(e, 'No se pudo cargar el tablero.'))
@@ -204,6 +211,11 @@ export default function AdminPage() {
   }, [buyerOptions, donations])
 
   const totalDonations = useMemo(() => sumDonations(donations), [donations])
+
+  const toggleSales = async (next: boolean) => {
+    await setSalesClosed(next)
+    setClosed(next)
+  }
 
   const saveDonation = async (input: DonationInput) => {
     if (donationForm && donationForm !== 'new') await updateDonation(donationForm.id, input)
@@ -356,6 +368,13 @@ export default function AdminPage() {
         </div>
       )}
 
+      {closed && (
+        <div className="bg-plum text-cream rounded-xl px-3 py-2 text-sm font-semibold mb-4">
+          🔒 <strong>Ventas cerradas.</strong> Nadie puede apartar números desde el
+          tablero público. Puedes reabrirlas cuando quieras.
+        </div>
+      )}
+
       {/* Con el tablero ya en pantalla, un refresco fallido es un aviso: lo que
           se ve sigue siendo válido. Solo alarma si no se pudo cargar nada. */}
       {loadError &&
@@ -464,6 +483,10 @@ export default function AdminPage() {
         </main>
 
         <aside className="flex flex-col gap-4 lg:col-start-2 lg:row-start-2 xl:col-start-3 xl:row-start-1">
+          <SalesLock closed={closed} onChange={toggleSales} />
+
+          <DebtorsPanel numbers={numbers} onSelect={setSelected} />
+
           <DonationsPanel
             donations={donations}
             onAdd={() => setDonationForm('new')}

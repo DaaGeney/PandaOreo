@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { requestNumber } from '../lib/store'
+import { requestNumber, fetchSalesClosed } from '../lib/store'
 import {
   pad2,
   formatCOP,
@@ -37,14 +37,24 @@ export default function RequestModal({ numbers, onClose, onDone }: Props) {
     const ok: number[] = []
     const taken: number[] = []
     let notReady = false
+    // Se pregunta aquí, y no solo al pintar el tablero, por si el admin cerró
+    // mientras esta página llevaba rato abierta. Si falla la consulta se sigue
+    // adelante: quedarse sin internet no puede impedir apartar un número.
+    let salesClosed = await fetchSalesClosed().catch(() => false)
     let failure: string | null = null
 
     for (const n of numbers) {
+      if (salesClosed) break
       try {
         await requestNumber(n, name, phone)
         ok.push(n)
       } catch (err) {
         const msg = err instanceof Error ? err.message : ''
+        // El admin cerró las ventas mientras esta página estaba abierta
+        if (/ventas ya están cerradas/i.test(msg)) {
+          salesClosed = true
+          break
+        }
         // Backend sin la función/tabla de solicitudes (SQL aún no ejecutado)
         if (/request_number|schema cache|does not exist/i.test(msg)) {
           notReady = true
@@ -63,6 +73,14 @@ export default function RequestModal({ numbers, onClose, onDone }: Props) {
       }
     }
 
+    if (salesClosed) {
+      setError(
+        `Las ventas ya se cerraron y no se pueden apartar más números. Si tienes dudas escríbele a ${CONTACT_NAME} al ${CONTACT_PHONE}.`
+      )
+      setSending(false)
+      onDone()
+      return
+    }
     if (notReady) {
       setError(
         `Las solicitudes en línea aún no están activas. Escríbele a ${CONTACT_NAME} al WhatsApp ${CONTACT_PHONE} para apartar tus números.`

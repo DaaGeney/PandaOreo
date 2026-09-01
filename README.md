@@ -69,7 +69,8 @@ select
   to_regclass('public.number_requests') is not null as "0002_solicitudes",
   exists (select 1 from pg_trigger
           where tgname = 'number_requests_notify')  as "0003_notificaciones",
-  to_regclass('public.donations')       is not null as "0004_aportes";
+  to_regclass('public.donations')       is not null as "0004_aportes",
+  to_regclass('public.raffle_settings') is not null as "0005_cierre_ventas";
 ```
 
 La última que salga en `true` es tu `--upto`.
