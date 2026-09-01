@@ -5,9 +5,11 @@ import {
   formatCOP,
   formatThousands,
   TICKET_PRICE,
-  whatsappLink,
+  reminderLink,
+  reminderText,
   paidLink,
 } from '../lib/types'
+import { shareText, type ShareResult } from '../lib/share'
 import AutocompleteInput, { type Suggestion } from './AutocompleteInput'
 import WhatsAppIcon from './WhatsAppIcon'
 
@@ -72,17 +74,30 @@ export default function NumberModal({
     setPaidDigits(String((1 + next.size) * TICKET_PRICE))
   }
 
-  // El mensaje de WhatsApp nombra todos los números que se están cobrando
-  const messageNumbers = [entry.number, ...alsoPaid].sort((a, b) => a - b)
+  // A quien ya pagó se le agradece por lo que acaba de pagar; a quien debe se
+  // le cobra TODO lo que debe, no solo el número que se abrió: mandarle tres
+  // mensajes a quien tiene tres apartados es justo lo que molesta.
+  const owedNumbers = [entry.number, ...pendingSiblings.map((s) => s.number)].sort(
+    (a, b) => a - b
+  )
+  const paidNumbers = [entry.number, ...alsoPaid].sort((a, b) => a - b)
+  const buyer = entry.buyer_name ?? ''
 
-  // A quien ya pagó se le agradece; a quien debe se le manda la llave para cobrar
   const whatsapp = entry.buyer_phone
-    ? (entry.status === 'paid' ? paidLink : whatsappLink)(
-        entry.buyer_phone,
-        messageNumbers,
-        entry.buyer_name ?? ''
-      )
+    ? entry.status === 'paid'
+      ? paidLink(entry.buyer_phone, paidNumbers, buyer)
+      : reminderLink(entry.buyer_phone, owedNumbers, buyer)
     : null
+
+  // Sin teléfono guardado no hay link posible: se usa la hoja de compartir del
+  // sistema, que en el celular deja elegir el contacto dentro de WhatsApp.
+  const green =
+    'w-full flex items-center justify-center gap-2 rounded-lg bg-[#25D366] text-white font-bold py-2.5 mb-2 hover:brightness-105'
+
+  const [shared, setShared] = useState<ShareResult | null>(null)
+  const shareReminder = async () => {
+    setShared(await shareText(reminderText(owedNumbers, buyer)))
+  }
 
   const save = async (status: RaffleNumber['status']) => {
     if (status !== 'available' && !name.trim()) {
@@ -186,17 +201,42 @@ export default function NumberModal({
                 href={whatsapp}
                 target="_blank"
                 rel="noreferrer"
-                className="w-full flex items-center justify-center gap-2 rounded-lg bg-[#25D366] text-white font-bold py-2.5 mb-2 hover:brightness-105"
+                className={green}
               >
                 <WhatsAppIcon />
                 {entry.status === 'paid' ? 'Escribir por WhatsApp' : 'Cobrar por WhatsApp'}
               </a>
             ) : (
-              entry.status !== 'available' && (
-                <p className="text-xs text-plum-light text-center mb-2">
-                  Sin teléfono guardado para escribirle por WhatsApp.
-                </p>
+              entry.status === 'reserved' && (
+                // Sin el teléfono no se puede armar el link, pero sí abrir
+                // WhatsApp y buscar el contacto a mano
+                <button type="button" onClick={shareReminder} className={green}>
+                  <WhatsAppIcon />
+                  Cobrar por WhatsApp
+                </button>
               )
+            )}
+
+            {entry.status === 'paid' && !whatsapp && (
+              <p className="text-xs text-plum-light text-center mb-2">
+                Sin teléfono guardado para escribirle por WhatsApp.
+              </p>
+            )}
+
+            {entry.status === 'reserved' && (
+              <p className="text-xs text-plum-light text-center mb-2">
+                {shared === 'copied'
+                  ? '✅ Mensaje copiado: pégalo en WhatsApp.'
+                  : shared === 'failed'
+                    ? 'No se pudo compartir el mensaje desde este dispositivo.'
+                    : !whatsapp
+                      ? 'Sin teléfono guardado: elige el contacto en WhatsApp.'
+                      : owedNumbers.length > 1
+                        ? `Le cobra los ${owedNumbers.length} que debe · ${formatCOP(
+                            owedNumbers.length * TICKET_PRICE
+                          )}`
+                        : ''}
+              </p>
             )}
 
             {error && <p className="text-sm text-red-700 mb-2">{error}</p>}
