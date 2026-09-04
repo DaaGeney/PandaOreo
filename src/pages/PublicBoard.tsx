@@ -9,6 +9,7 @@ import PullToRefreshIndicator from '../components/PullToRefreshIndicator'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
 import {
   DRAW_DATE,
+  DRAW_RULE,
   PRIZE,
   TICKET_PRICE,
   CONTACT_LABEL,
@@ -152,6 +153,7 @@ export default function PublicBoard() {
       </button>
 
       <p className="text-center text-plum-dark font-bold mt-5">{DRAW_DATE}</p>
+      <p className="text-center text-plum font-semibold mt-1">{DRAW_RULE}</p>
       <p className="text-center text-ink font-bold mt-2">📲 {CONTACT_LABEL}</p>
       <p className="text-center text-plum font-bold mt-1">💸 {BREB_LABEL}</p>
       <p className="text-center text-blush font-semibold mt-1">

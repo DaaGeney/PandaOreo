@@ -147,7 +147,13 @@ export const PRIZE = 1000000
 export const RAFFLE_TITLE = 'Rifa Solidaria Oreo y Panda'
 /** El día del sorteo, para escribirlo dentro de una frase. */
 export const DRAW_DAY = 'viernes 04 de septiembre'
-export const DRAW_DATE = 'Viernes 4 de septiembre · Premio Mayor Lotería de Medellín · 11:00 p.m.'
+export const DRAW_DATE = 'Viernes 4 de septiembre · Lotería de Medellín · 11:00 p.m.'
+/**
+ * Con qué se gana. Va aparte de la fecha para que ninguna de las dos líneas
+ * quede kilométrica en celular, y porque es lo que hay que dejar sin dudas:
+ * no gana quien tenga el número del premio, sino sus dos últimas cifras.
+ */
+export const DRAW_RULE = 'Gana el número con las dos últimas cifras del Premio Mayor'
 export const CONTACT_PHONE = '3008827856'
 export const CONTACT_NAME = 'Diego Assia'
 export const CONTACT_LABEL = `Responsable: ${CONTACT_NAME} · ${CONTACT_PHONE}`
